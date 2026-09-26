@@ -1,0 +1,42 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Entity {
+  id          String   @id @default(cuid())
+  fingerprint String   @unique
+  name        String?
+  kind        String?
+  status      String   @default("unknown")
+  firstSeen   DateTime @default(now()) @map("first_seen")
+  lastSeen    DateTime @default(now()) @map("last_seen")
+
+  @@map("entities")
+}
+
+model Receiver {
+  id    String @id
+  name  String
+  x     Float
+  y     Float
+  floor Int    @default(0)
+
+  @@map("receivers")
+}
+
+model Position {
+  time     DateTime @default(now())
+  entityId String   @map("entity_id")
+  x        Float
+  y        Float
+  accuracy Float
+
+  @@id([time, entityId])
+  @@index([entityId, time])
+  @@map("positions")
+}
