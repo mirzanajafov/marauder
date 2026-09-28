@@ -22,7 +22,7 @@ interface Tag {
 const TAG_COUNT = Number(process.env.TAG_COUNT ?? 6) || 6;
 const HZ = Number(process.env.SIM_HZ ?? 10) || 10;
 const SPEED = Number(process.env.SIM_SPEED ?? 1.4) || 1.4;
-const NOISE_DB = Number(process.env.SIM_NOISE_DB ?? 1.8) || 1.8;
+const NOISE_DB = Number(process.env.SIM_NOISE_DB ?? 1.2) || 1.2;
 const DROP_PROB = Number(process.env.SIM_DROP_PROB ?? 0.08);
 const DWELL_MIN = Number(process.env.SIM_DWELL_MIN_MS ?? 2500) || 2500;
 const DWELL_MAX = Number(process.env.SIM_DWELL_MAX_MS ?? 7000) || 7000;
