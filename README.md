@@ -5,9 +5,9 @@ push RSSI-based tracking with a clean streaming pipeline: fixed BLE/Wi-Fi tags
 report to fixed receivers, and the backend turns that noisy stream into live dots
 moving on a floor plan.
 
-The idea comes from the Marauder's Map: named markers gliding around a building in
-real time. Here the named things are tags people or assets carry on purpose, not
-phones tracked without consent.
+The use case is a workplace: staff and assets moving around a building in real time,
+each shown by name on the floor plan. The tracked things carry a tag on purpose —
+think a staff badge or an asset tag — not phones tracked without consent.
 
 ![Live tracking on the floor plan](assets/marauder-demo.gif)
 
