@@ -111,8 +111,9 @@ body {
 
 .entity-label {
   fill: var(--text);
-  font-size: 1.3px;
+  font-size: 1.05px;
   font-weight: 600;
+  pointer-events: none;
 }
 
 .panel {

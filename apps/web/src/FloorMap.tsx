@@ -28,16 +28,16 @@ const PALETTE = [
   '#39c5cf',
   '#e3b341',
   '#ff9bce',
-  '#a5d6ff',
+  '#7ee787',
   '#d2a8ff',
 ];
 
-function colorFor(id: string): string {
+function hashId(id: string): number {
   let h = 0;
   for (let i = 0; i < id.length; i++) {
     h = (h * 31 + id.charCodeAt(i)) >>> 0;
   }
-  return PALETTE[h % PALETTE.length];
+  return h;
 }
 
 export function FloorMap({ width, height, imageUrl, walls, receivers, entities, positions, trails, onMapClick }: Props) {
@@ -78,21 +78,26 @@ export function FloorMap({ width, height, imageUrl, walls, receivers, entities, 
         {gridLines(width, height)}
         {receivers.map((r) => (
           <g key={r.id}>
-            <rect x={r.x - 0.45} y={r.y - 0.45} width={0.9} height={0.9} className="receiver" />
-            <text x={r.x} y={r.y - 0.8} className="receiver-label">
+            <rect x={r.x - 0.4} y={r.y - 0.4} width={0.8} height={0.8} rx={0.18} className="receiver" />
+            <text x={r.x} y={r.y - 0.75} className="receiver-label">
               {r.name}
             </text>
           </g>
         ))}
         {posList.map((p) => {
           const entity = entities[p.entityId];
-          const color = colorFor(p.entityId);
+          const color = PALETTE[hashId(p.entityId) % PALETTE.length];
           const label = entity?.name ?? p.name ?? 'Unknown';
           const trail = trails?.[p.entityId] ?? [{ x: p.x, y: p.y }];
+          const dy = (((hashId(p.entityId) % 5) - 2) * 1.6);
+          const w = label.length * 0.6 + 0.8;
+          const lx = p.x + 0.7;
+          const ly = p.y - 2 + dy;
           return (
             <g key={p.entityId}>
               {footprints(p.entityId, trail, color)}
-              <text x={p.x + 0.9} y={p.y - 0.6} className="entity-label" fill={color}>
+              <rect x={lx} y={ly} width={w} height={1.5} rx={0.4} fill="#0d1117" opacity={0.82} stroke={color} strokeWidth={0.07} />
+              <text x={lx + 0.4} y={ly + 1.02} className="entity-label">
                 {label}
               </text>
             </g>
@@ -114,13 +119,17 @@ function footprints(id: string, pts: Trail[], color: string): JSX.Element[] {
     const side = i % 2 === 0 ? 1 : -1;
     const ox = Math.cos(angle + Math.PI / 2) * 0.28 * side;
     const oy = Math.sin(angle + Math.PI / 2) * 0.28 * side;
-    const opacity = last === 0 ? 0.95 : 0.15 + 0.8 * (i / last);
+    const head = i === last;
+    const opacity = last === 0 ? 0.95 : 0.14 + 0.81 * (i / last);
     const cx = p.x + ox;
     const cy = p.y + oy;
+    if (head) {
+      els.push(<circle key={`${id}-h`} cx={p.x} cy={p.y} r={0.95} fill={color} opacity={0.16} />);
+    }
     els.push(
       <g key={`${id}-${i}`} transform={`translate(${cx} ${cy}) rotate(${deg})`} fill={color} opacity={opacity}>
-        <ellipse cx={0.17} cy={0} rx={0.3} ry={0.16} />
-        <ellipse cx={-0.24} cy={0} rx={0.14} ry={0.11} />
+        <ellipse cx={0.17} cy={0} rx={head ? 0.34 : 0.29} ry={head ? 0.18 : 0.15} />
+        <ellipse cx={-0.24} cy={0} rx={head ? 0.15 : 0.13} ry={head ? 0.12 : 0.1} />
       </g>,
     );
   }
