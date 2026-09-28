@@ -55,4 +55,14 @@ describe('API (e2e)', () => {
     expect(found).toBeDefined();
     expect(found.status).toBe('tagged');
   });
+
+  it('reports a history summary', async () => {
+    const res = await request(app.getHttpServer()).get('/history/summary').expect(200);
+    expect(typeof res.body.count).toBe('number');
+  });
+
+  it('returns history points as an array', async () => {
+    const res = await request(app.getHttpServer()).get('/history?bucketMs=1000').expect(200);
+    expect(Array.isArray(res.body)).toBe(true);
+  });
 });

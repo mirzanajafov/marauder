@@ -12,8 +12,12 @@ import { fetchEntities, fetchReceivers, tagEntity } from './api';
 import { createSocket } from './socket';
 import { FloorMap } from './FloorMap';
 import { AdminPanel } from './AdminPanel';
+import { HistoryView } from './HistoryView';
+
+type Mode = 'live' | 'history';
 
 export function App() {
+  const [mode, setMode] = useState<Mode>('live');
   const [receivers, setReceivers] = useState<Receiver[]>([]);
   const [entities, setEntities] = useState<Record<string, Entity>>({});
   const [positions, setPositions] = useState<Record<string, PositionUpdate>>({});
@@ -60,11 +64,27 @@ export function App() {
     <div className="app">
       <header className="topbar">
         <h1>Marauder</h1>
-        <span className={connected ? 'status on' : 'status off'}>{connected ? 'live' : 'offline'}</span>
+        <div className="modes">
+          <button className={mode === 'live' ? 'active' : ''} onClick={() => setMode('live')}>
+            live
+          </button>
+          <button className={mode === 'history' ? 'active' : ''} onClick={() => setMode('history')}>
+            history
+          </button>
+        </div>
+        {mode === 'live' && (
+          <span className={connected ? 'status on' : 'status off'}>{connected ? 'live' : 'offline'}</span>
+        )}
       </header>
       <main className="layout">
-        <FloorMap receivers={receivers} entities={entities} positions={positions} />
-        <AdminPanel entities={entityList} onTag={onTag} />
+        {mode === 'live' ? (
+          <>
+            <FloorMap receivers={receivers} entities={entities} positions={positions} />
+            <AdminPanel entities={entityList} onTag={onTag} />
+          </>
+        ) : (
+          <HistoryView receivers={receivers} />
+        )}
       </main>
     </div>
   );
