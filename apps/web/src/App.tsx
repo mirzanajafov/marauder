@@ -9,7 +9,8 @@ import {
   Receiver,
   WsEvents,
 } from '@marauder/shared';
-import { fetchEntities, fetchFloorPlan, fetchReceivers, tagEntity } from './api';
+import { fetchEntities, fetchFloorPlan, fetchReceivers, login, setAuthToken, tagEntity } from './api';
+import { clearToken, loadToken, saveToken } from './token';
 import { createSocket } from './socket';
 import { FloorMap } from './FloorMap';
 import { AdminPanel } from './AdminPanel';
@@ -27,12 +28,21 @@ export function App() {
   const [entities, setEntities] = useState<Record<string, Entity>>({});
   const [positions, setPositions] = useState<Record<string, PositionUpdate>>({});
   const [connected, setConnected] = useState(false);
+  const [token, setToken] = useState<string | null>(null);
+  const [password, setPassword] = useState('');
+  const [loginError, setLoginError] = useState(false);
 
   const reloadReceivers = (): void => {
     fetchReceivers().then(setReceivers).catch(() => undefined);
   };
 
   useEffect(() => {
+    const stored = loadToken();
+    if (stored) {
+      setToken(stored);
+      setAuthToken(stored);
+    }
+
     reloadReceivers();
     fetchFloorPlan().then(setFloor).catch(() => undefined);
     fetchEntities()
@@ -68,6 +78,26 @@ export function App() {
     setEntities((prev) => ({ ...prev, [updated.id]: updated }));
   };
 
+  const doLogin = async (): Promise<void> => {
+    try {
+      const next = await login(password);
+      setToken(next);
+      setAuthToken(next);
+      saveToken(next);
+      setPassword('');
+      setLoginError(false);
+    } catch {
+      setLoginError(true);
+    }
+  };
+
+  const logout = (): void => {
+    setToken(null);
+    setAuthToken(null);
+    clearToken();
+  };
+
+  const authed = token !== null;
   const entityList = useMemo(() => Object.values(entities), [entities]);
 
   return (
@@ -88,6 +118,35 @@ export function App() {
         {mode === 'live' && (
           <span className={connected ? 'status on' : 'status off'}>{connected ? 'live' : 'offline'}</span>
         )}
+        <div className="auth">
+          {authed ? (
+            <>
+              <span className="admin-badge">admin</span>
+              <button onClick={logout}>logout</button>
+            </>
+          ) : (
+            <>
+              <input
+                type="password"
+                className={loginError ? 'error' : ''}
+                value={password}
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  setLoginError(false);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    void doLogin();
+                  }
+                }}
+                placeholder="admin password"
+              />
+              <button onClick={() => void doLogin()} disabled={password.trim() === ''}>
+                login
+              </button>
+            </>
+          )}
+        </div>
       </header>
       <main className="layout">
         {mode === 'live' && (
@@ -100,7 +159,7 @@ export function App() {
               entities={entities}
               positions={positions}
             />
-            <AdminPanel entities={entityList} onTag={onTag} />
+            <AdminPanel entities={entityList} onTag={onTag} authed={authed} />
           </>
         )}
         {mode === 'history' && <HistoryView receivers={receivers} floor={floor} />}
@@ -108,6 +167,7 @@ export function App() {
           <ConfigPanel
             receivers={receivers}
             floor={floor}
+            authed={authed}
             onReceiversChange={reloadReceivers}
             onFloorChange={setFloor}
           />

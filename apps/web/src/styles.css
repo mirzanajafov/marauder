@@ -352,3 +352,42 @@ button.danger {
   padding: 6px 8px;
   cursor: pointer;
 }
+
+.auth {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.auth input {
+  background: var(--bg);
+  border: 1px solid var(--line);
+  color: var(--text);
+  border-radius: 6px;
+  padding: 5px 8px;
+  font-size: 12px;
+  width: 140px;
+}
+
+.auth input.error {
+  border-color: var(--unknown);
+}
+
+.auth button {
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 5px 10px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.admin-badge {
+  font-size: 12px;
+  color: var(--tagged);
+  border: 1px solid var(--tagged);
+  border-radius: 999px;
+  padding: 2px 8px;
+}

@@ -52,6 +52,8 @@ jobs:
       REDIS_URL: redis://localhost:6379
       MQTT_URL: mqtt://localhost:1883
       WEB_ORIGIN: http://localhost:5173
+      ADMIN_PASSWORD: marauder
+      JWT_SECRET: ci-secret
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4

@@ -9,7 +9,9 @@ describe('API (e2e)', () => {
   let app: INestApplication;
   let prisma: PrismaService;
   let entityId: string;
+  let token: string;
   const fingerprint = `e2e-${randomUUID()}`;
+  const password = process.env.ADMIN_PASSWORD ?? 'marauder';
 
   beforeAll(async () => {
     const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
@@ -21,6 +23,8 @@ describe('API (e2e)', () => {
       data: { id: randomUUID(), fingerprint, status: 'unknown' },
     });
     entityId = row.id;
+    const login = await request(app.getHttpServer()).post('/auth/login').send({ password }).expect(201);
+    token = login.body.token;
   });
 
   afterAll(async () => {
@@ -32,6 +36,8 @@ describe('API (e2e)', () => {
     }
   });
 
+  const auth = (): string => `Bearer ${token}`;
+
   it('reports health', async () => {
     await request(app.getHttpServer()).get('/health').expect(200).expect({ status: 'ok' });
   });
@@ -42,9 +48,21 @@ describe('API (e2e)', () => {
     expect(res.body.length).toBeGreaterThanOrEqual(5);
   });
 
-  it('tags an entity and reflects the change', async () => {
+  it('rejects login with a wrong password', async () => {
+    await request(app.getHttpServer()).post('/auth/login').send({ password: 'nope' }).expect(401);
+  });
+
+  it('rejects tagging without a token', async () => {
+    await request(app.getHttpServer())
+      .patch(`/entities/${entityId}`)
+      .send({ name: 'No Auth' })
+      .expect(401);
+  });
+
+  it('tags an entity with a token and reflects the change', async () => {
     const res = await request(app.getHttpServer())
       .patch(`/entities/${entityId}`)
+      .set('Authorization', auth())
       .send({ name: 'Test Subject', kind: 'person' })
       .expect(200);
     expect(res.body.status).toBe('tagged');
@@ -66,23 +84,29 @@ describe('API (e2e)', () => {
     expect(Array.isArray(res.body)).toBe(true);
   });
 
-  it('reads and rewrites the floor plan', async () => {
+  it('reads and rewrites the floor plan with a token', async () => {
     const before = await request(app.getHttpServer()).get('/floorplan').expect(200);
     expect(before.body.width).toBeGreaterThan(0);
+    await request(app.getHttpServer())
+      .put('/floorplan')
+      .send({ imageUrl: before.body.imageUrl, width: before.body.width, height: before.body.height, floor: before.body.floor })
+      .expect(401);
     const updated = await request(app.getHttpServer())
       .put('/floorplan')
+      .set('Authorization', auth())
       .send({ imageUrl: before.body.imageUrl, width: before.body.width, height: before.body.height, floor: before.body.floor })
       .expect(200);
     expect(updated.body.height).toBe(before.body.height);
   });
 
-  it('creates and deletes a receiver', async () => {
-    const id = 'e2e-rx-' + Date.now();
+  it('creates and deletes a receiver with a token', async () => {
+    const id = `e2e-rx-${Date.now()}`;
     const created = await request(app.getHttpServer())
       .post('/receivers')
+      .set('Authorization', auth())
       .send({ id, name: 'E2E', x: 1, y: 2, floor: 0 })
       .expect(201);
     expect(created.body.id).toBe(id);
-    await request(app.getHttpServer()).delete('/receivers/' + id).expect(204);
+    await request(app.getHttpServer()).delete(`/receivers/${id}`).set('Authorization', auth()).expect(204);
   });
 });
