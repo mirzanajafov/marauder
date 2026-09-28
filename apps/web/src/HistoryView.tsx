@@ -13,7 +13,7 @@ import { FloorMap } from './FloorMap';
 
 const BUCKET_MS = 500;
 const SPEEDS = [0.5, 1, 2, 4];
-const TRAIL_LEN = 8;
+const TRAIL_LEN = 10;
 
 interface Frame {
   time: number;
