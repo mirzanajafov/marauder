@@ -1,5 +1,5 @@
 import { JSX, MouseEvent } from 'react';
-import { Entity, PositionUpdate, Receiver, Wall } from '@marauder/shared';
+import { DEFAULT_SCENE, Entity, PositionUpdate, Receiver, Wall } from '@marauder/shared';
 
 interface Trail {
   x: number;
@@ -70,12 +70,21 @@ export function FloorMap({ width, height, imageUrl, walls, receivers, entities, 
         <rect x={0} y={0} width={width} height={height} className="floor-bg" />
         {imageUrl ? (
           <image href={imageUrl} x={0} y={0} width={width} height={height} preserveAspectRatio="none" opacity={0.55} />
-        ) : (
-          walls?.map((w, i) => (
-            <line key={`w${i}`} x1={w.x1} y1={w.y1} x2={w.x2} y2={w.y2} className="wall" />
-          ))
-        )}
-        {gridLines(width, height)}
+        ) : walls ? (
+          <>
+            {DEFAULT_SCENE.furniture.map((f, i) => (
+              <rect key={`f${i}`} x={f.x} y={f.y} width={f.w} height={f.h} rx={0.15} className="furniture" />
+            ))}
+            {walls.map((w, i) => (
+              <line key={`w${i}`} x1={w.x1} y1={w.y1} x2={w.x2} y2={w.y2} className="wall" />
+            ))}
+            {DEFAULT_SCENE.rooms.map((r, i) => (
+              <text key={`r${i}`} x={r.x + r.w / 2} y={r.y + 1.7} className="room-label">
+                {r.name}
+              </text>
+            ))}
+          </>
+        ) : null}
         {receivers.map((r) => (
           <g key={r.id}>
             <rect x={r.x - 0.4} y={r.y - 0.4} width={0.8} height={0.8} rx={0.18} className="receiver" />
@@ -134,15 +143,4 @@ function footprints(id: string, pts: Trail[], color: string): JSX.Element[] {
     );
   }
   return els;
-}
-
-function gridLines(width: number, height: number): JSX.Element[] {
-  const lines: JSX.Element[] = [];
-  for (let x = 0; x <= width; x += 5) {
-    lines.push(<line key={`vx${x}`} x1={x} y1={0} x2={x} y2={height} className="grid" />);
-  }
-  for (let y = 0; y <= height; y += 5) {
-    lines.push(<line key={`hy${y}`} x1={0} y1={y} x2={width} y2={y} className="grid" />);
-  }
-  return lines;
 }

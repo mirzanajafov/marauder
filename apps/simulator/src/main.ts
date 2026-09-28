@@ -37,7 +37,7 @@ for (const [a, b] of DEFAULT_SCENE.edges) {
   adjacency.get(a)?.push(b);
   adjacency.get(b)?.push(a);
 }
-const ROOMS = DEFAULT_SCENE.nodes.map((n) => n.id).filter((id) => /^(TL|TR|BL|BR)/.test(id));
+const ROOMS = DEFAULT_SCENE.nodes.map((n) => n.id).filter((id) => id.startsWith('room-'));
 
 function pick<T>(items: T[]): T {
   return items[Math.floor(Math.random() * items.length)];
