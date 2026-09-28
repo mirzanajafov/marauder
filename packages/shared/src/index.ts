@@ -89,3 +89,19 @@ export const DEFAULT_RECEIVERS: Receiver[] = [
 
 export const DEFAULT_TX_POWER = -59;
 export const DEFAULT_PATH_LOSS_EXPONENT = 2.5;
+
+export interface HistorySummary {
+  from: string | null;
+  to: string | null;
+  count: number;
+}
+
+export interface HistoryPoint {
+  entityId: string;
+  x: number;
+  y: number;
+  accuracy: number;
+  time: number;
+  name: string | null;
+  status: EntityStatus;
+}
