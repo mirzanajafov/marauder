@@ -114,3 +114,124 @@ export interface FloorPlan {
 }
 
 export const DEFAULT_FLOORPLAN_ID = 'default';
+
+export interface Point {
+  x: number;
+  y: number;
+}
+
+export interface Wall {
+  x1: number;
+  y1: number;
+  x2: number;
+  y2: number;
+}
+
+export interface NavNode {
+  id: string;
+  x: number;
+  y: number;
+}
+
+export interface FloorScene {
+  width: number;
+  height: number;
+  walls: Wall[];
+  nodes: NavNode[];
+  edges: [string, string][];
+}
+
+function buildScene(): FloorScene {
+  const width = 40;
+  const height = 25;
+  const doorXs = [5, 14.5, 25.5, 34.5];
+  const doorHalf = 0.6;
+  const yTop = 11.5;
+  const yBot = 13.5;
+  const xL = 19;
+  const xR = 21;
+  const splitXs = [10, 30];
+  const walls: Wall[] = [
+    { x1: 1, y1: 1, x2: 39, y2: 1 },
+    { x1: 1, y1: 24, x2: 39, y2: 24 },
+    { x1: 1, y1: 1, x2: 1, y2: 24 },
+    { x1: 39, y1: 1, x2: 39, y2: 24 },
+  ];
+  const gaps: [number, number][] = doorXs
+    .map((x) => [x - doorHalf, x + doorHalf] as [number, number])
+    .concat([[xL, xR]])
+    .sort((a, b) => a[0] - b[0]);
+  const segments = (from: number, to: number): [number, number][] => {
+    const out: [number, number][] = [];
+    let cur = from;
+    for (const [g0, g1] of gaps) {
+      if (g1 < cur) {
+        continue;
+      }
+      if (g0 > cur) {
+        out.push([cur, Math.min(g0, to)]);
+      }
+      cur = Math.max(cur, g1);
+      if (cur >= to) {
+        break;
+      }
+    }
+    if (cur < to) {
+      out.push([cur, to]);
+    }
+    return out;
+  };
+  for (const y of [yTop, yBot]) {
+    for (const [a, b] of segments(1, 39)) {
+      walls.push({ x1: a, y1: y, x2: b, y2: y });
+    }
+  }
+  for (const x of [xL, xR]) {
+    walls.push({ x1: x, y1: 1, x2: x, y2: yTop });
+    walls.push({ x1: x, y1: yBot, x2: x, y2: 24 });
+  }
+  for (const x of splitXs) {
+    walls.push({ x1: x, y1: 1, x2: x, y2: yTop });
+    walls.push({ x1: x, y1: yBot, x2: x, y2: 24 });
+  }
+  const nodes: NavNode[] = [
+    { id: 'H1', x: 3, y: 12.5 },
+    { id: 'H2', x: 5, y: 12.5 },
+    { id: 'H3', x: 14.5, y: 12.5 },
+    { id: 'CX', x: 20, y: 12.5 },
+    { id: 'H5', x: 25.5, y: 12.5 },
+    { id: 'H6', x: 34.5, y: 12.5 },
+    { id: 'H7', x: 37, y: 12.5 },
+    { id: 'V1', x: 20, y: 3 },
+    { id: 'V3', x: 20, y: 22 },
+    { id: 'TL1', x: 5, y: 6 },
+    { id: 'TL2', x: 14.5, y: 6 },
+    { id: 'TR1', x: 25.5, y: 6 },
+    { id: 'TR2', x: 34.5, y: 6 },
+    { id: 'BL1', x: 5, y: 19 },
+    { id: 'BL2', x: 14.5, y: 19 },
+    { id: 'BR1', x: 25.5, y: 19 },
+    { id: 'BR2', x: 34.5, y: 19 },
+  ];
+  const edges: [string, string][] = [
+    ['H1', 'H2'],
+    ['H2', 'H3'],
+    ['H3', 'CX'],
+    ['CX', 'H5'],
+    ['H5', 'H6'],
+    ['H6', 'H7'],
+    ['V1', 'CX'],
+    ['CX', 'V3'],
+    ['TL1', 'H2'],
+    ['TL2', 'H3'],
+    ['TR1', 'H5'],
+    ['TR2', 'H6'],
+    ['BL1', 'H2'],
+    ['BL2', 'H3'],
+    ['BR1', 'H5'],
+    ['BR2', 'H6'],
+  ];
+  return { width, height, walls, nodes, edges };
+}
+
+export const DEFAULT_SCENE: FloorScene = buildScene();
