@@ -13,7 +13,7 @@ async function main() {
   await prisma.floorPlan.upsert({
     where: { id: DEFAULT_FLOORPLAN_ID },
     update: {},
-    create: { id: DEFAULT_FLOORPLAN_ID, imageUrl: null, width: FLOOR.width, height: FLOOR.height, floor: 0 },
+    create: { id: DEFAULT_FLOORPLAN_ID, imageUrl: '/floorplan.svg', width: FLOOR.width, height: FLOOR.height, floor: 0 },
   });
   await prisma.$disconnect();
 }
