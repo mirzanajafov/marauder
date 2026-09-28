@@ -391,3 +391,9 @@ button.danger {
   border-radius: 999px;
   padding: 2px 8px;
 }
+
+.wall {
+  stroke: #7d8590;
+  stroke-width: 0.35;
+  stroke-linecap: round;
+}

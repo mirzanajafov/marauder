@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { FloorPlan, Receiver } from '@marauder/shared';
+import { FloorPlan, Receiver, Wall } from '@marauder/shared';
 import { createReceiver, deleteReceiver, updateFloorPlan, updateReceiver } from './api';
 import { FloorMap } from './FloorMap';
 
@@ -7,6 +7,7 @@ interface Props {
   receivers: Receiver[];
   floor: FloorPlan;
   authed: boolean;
+  walls?: Wall[];
   onReceiversChange: () => void;
   onFloorChange: (floor: FloorPlan) => void;
 }
@@ -14,7 +15,7 @@ interface Props {
 const NO_POSITIONS = {};
 const NO_ENTITIES = {};
 
-export function ConfigPanel({ receivers, floor, authed, onReceiversChange, onFloorChange }: Props) {
+export function ConfigPanel({ receivers, floor, authed, walls, onReceiversChange, onFloorChange }: Props) {
   const [imageUrl, setImageUrl] = useState(floor.imageUrl ?? '');
   const [width, setWidth] = useState(String(floor.width));
   const [height, setHeight] = useState(String(floor.height));
@@ -51,6 +52,7 @@ export function ConfigPanel({ receivers, floor, authed, onReceiversChange, onFlo
         width={floor.width}
         height={floor.height}
         imageUrl={floor.imageUrl}
+        walls={walls}
         receivers={receivers}
         entities={NO_ENTITIES}
         positions={NO_POSITIONS}

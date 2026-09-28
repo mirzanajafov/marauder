@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
+  DEFAULT_SCENE,
   Entity,
   EntityDiscoveredEvent,
   EntityUpdatedEvent,
@@ -18,8 +19,11 @@ import { HistoryView } from './HistoryView';
 import { ConfigPanel } from './ConfigPanel';
 
 type Mode = 'live' | 'history' | 'config';
+type Trail = { x: number; y: number };
 
-const DEFAULT_FLOOR: FloorPlan = { imageUrl: null, width: 40, height: 25, floor: 0 };
+const DEFAULT_FLOOR: FloorPlan = { imageUrl: null, width: DEFAULT_SCENE.width, height: DEFAULT_SCENE.height, floor: 0 };
+const TRAIL_LEN = 8;
+const TRAIL_MIN_MOVE = 0.15;
 
 export function App() {
   const [mode, setMode] = useState<Mode>('live');
@@ -27,6 +31,7 @@ export function App() {
   const [floor, setFloor] = useState<FloorPlan>(DEFAULT_FLOOR);
   const [entities, setEntities] = useState<Record<string, Entity>>({});
   const [positions, setPositions] = useState<Record<string, PositionUpdate>>({});
+  const [trails, setTrails] = useState<Record<string, Trail[]>>({});
   const [connected, setConnected] = useState(false);
   const [token, setToken] = useState<string | null>(null);
   const [password, setPassword] = useState('');
@@ -66,6 +71,21 @@ export function App() {
         }
         return next;
       });
+      setTrails((prev) => {
+        const next = { ...prev };
+        for (const pos of p.positions) {
+          const arr = next[pos.entityId] ? [...next[pos.entityId]] : [];
+          const head = arr[arr.length - 1];
+          if (!head || Math.hypot(head.x - pos.x, head.y - pos.y) > TRAIL_MIN_MOVE) {
+            arr.push({ x: pos.x, y: pos.y });
+            while (arr.length > TRAIL_LEN) {
+              arr.shift();
+            }
+          }
+          next[pos.entityId] = arr.length > 0 ? arr : [{ x: pos.x, y: pos.y }];
+        }
+        return next;
+      });
     });
 
     return () => {
@@ -99,6 +119,7 @@ export function App() {
 
   const authed = token !== null;
   const entityList = useMemo(() => Object.values(entities), [entities]);
+  const walls = floor.imageUrl ? undefined : DEFAULT_SCENE.walls;
 
   return (
     <div className="app">
@@ -155,18 +176,21 @@ export function App() {
               width={floor.width}
               height={floor.height}
               imageUrl={floor.imageUrl}
+              walls={walls}
               receivers={receivers}
               entities={entities}
               positions={positions}
+              trails={trails}
             />
             <AdminPanel entities={entityList} onTag={onTag} authed={authed} />
           </>
         )}
-        {mode === 'history' && <HistoryView receivers={receivers} floor={floor} />}
+        {mode === 'history' && <HistoryView receivers={receivers} floor={floor} walls={walls} />}
         {mode === 'config' && (
           <ConfigPanel
             receivers={receivers}
             floor={floor}
+            walls={walls}
             authed={authed}
             onReceiversChange={reloadReceivers}
             onFloorChange={setFloor}

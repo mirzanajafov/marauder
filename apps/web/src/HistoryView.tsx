@@ -1,10 +1,19 @@
 import { useEffect, useMemo, useState } from 'react';
-import { EntityStatus, FloorPlan, HistoryPoint, HistorySummary, PositionUpdate, Receiver } from '@marauder/shared';
+import {
+  EntityStatus,
+  FloorPlan,
+  HistoryPoint,
+  HistorySummary,
+  PositionUpdate,
+  Receiver,
+  Wall,
+} from '@marauder/shared';
 import { fetchHistory, fetchHistorySummary } from './api';
 import { FloorMap } from './FloorMap';
 
 const BUCKET_MS = 500;
 const SPEEDS = [0.5, 1, 2, 4];
+const TRAIL_LEN = 8;
 
 interface Frame {
   time: number;
@@ -14,9 +23,10 @@ interface Frame {
 interface Props {
   receivers: Receiver[];
   floor: FloorPlan;
+  walls?: Wall[];
 }
 
-export function HistoryView({ receivers, floor }: Props) {
+export function HistoryView({ receivers, floor, walls }: Props) {
   const [summary, setSummary] = useState<HistorySummary | null>(null);
   const [points, setPoints] = useState<HistoryPoint[]>([]);
   const [idx, setIdx] = useState(0);
@@ -82,6 +92,20 @@ export function HistoryView({ receivers, floor }: Props) {
     return out;
   }, [points]);
 
+  const clamped = frames.length > 0 ? Math.min(idx, frames.length - 1) : 0;
+
+  const trails = useMemo<Record<string, { x: number; y: number }[]>>(() => {
+    const out: Record<string, { x: number; y: number }[]> = {};
+    const start = Math.max(0, clamped - TRAIL_LEN + 1);
+    for (let j = start; j <= clamped && j < frames.length; j++) {
+      const fp = frames[j].positions;
+      for (const id of Object.keys(fp)) {
+        (out[id] ??= []).push({ x: fp[id].x, y: fp[id].y });
+      }
+    }
+    return out;
+  }, [frames, clamped]);
+
   useEffect(() => {
     if (!playing || frames.length === 0) {
       return;
@@ -114,7 +138,7 @@ export function HistoryView({ receivers, floor }: Props) {
     );
   }
 
-  const current = frames[Math.min(idx, frames.length - 1)];
+  const current = frames[clamped];
   const clock = new Date(current.time).toLocaleTimeString();
   const total = summary?.count ?? 0;
 
@@ -124,9 +148,11 @@ export function HistoryView({ receivers, floor }: Props) {
         width={floor.width}
         height={floor.height}
         imageUrl={floor.imageUrl}
+        walls={walls}
         receivers={receivers}
         entities={{}}
         positions={current.positions}
+        trails={trails}
       />
       <div className="controls">
         <button className="play" onClick={() => setPlaying((p) => !p)}>
@@ -136,7 +162,7 @@ export function HistoryView({ receivers, floor }: Props) {
           type="range"
           min={0}
           max={frames.length - 1}
-          value={Math.min(idx, frames.length - 1)}
+          value={clamped}
           onChange={(e) => {
             setPlaying(false);
             setIdx(Number(e.target.value));
