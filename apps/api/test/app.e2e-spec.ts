@@ -65,4 +65,24 @@ describe('API (e2e)', () => {
     const res = await request(app.getHttpServer()).get('/history?bucketMs=1000').expect(200);
     expect(Array.isArray(res.body)).toBe(true);
   });
+
+  it('reads and rewrites the floor plan', async () => {
+    const before = await request(app.getHttpServer()).get('/floorplan').expect(200);
+    expect(before.body.width).toBeGreaterThan(0);
+    const updated = await request(app.getHttpServer())
+      .put('/floorplan')
+      .send({ imageUrl: before.body.imageUrl, width: before.body.width, height: before.body.height, floor: before.body.floor })
+      .expect(200);
+    expect(updated.body.height).toBe(before.body.height);
+  });
+
+  it('creates and deletes a receiver', async () => {
+    const id = 'e2e-rx-' + Date.now();
+    const created = await request(app.getHttpServer())
+      .post('/receivers')
+      .send({ id, name: 'E2E', x: 1, y: 2, floor: 0 })
+      .expect(201);
+    expect(created.body.id).toBe(id);
+    await request(app.getHttpServer()).delete('/receivers/' + id).expect(204);
+  });
 });

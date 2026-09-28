@@ -10,6 +10,7 @@ import { PositionModule } from './position/position.module';
 import { TrackingModule } from './tracking/tracking.module';
 import { IngestModule } from './ingest/ingest.module';
 import { HistoryModule } from './history/history.module';
+import { FloorPlanModule } from './floorplan/floorplan.module';
 import { HealthController } from './health.controller';
 
 @Module({
@@ -25,6 +26,7 @@ import { HealthController } from './health.controller';
     TrackingModule,
     IngestModule,
     HistoryModule,
+    FloorPlanModule,
   ],
   controllers: [HealthController],
 })
