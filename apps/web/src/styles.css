@@ -398,3 +398,18 @@ button.danger {
   stroke-width: 0.35;
   stroke-linecap: round;
 }
+
+.furniture {
+  fill: #262c36;
+  stroke: #313a46;
+  stroke-width: 0.05;
+}
+
+.room-label {
+  fill: #6e7681;
+  font-size: 1.1px;
+  font-weight: 500;
+  text-anchor: middle;
+  letter-spacing: 0.03px;
+  pointer-events: none;
+}
