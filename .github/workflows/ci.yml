@@ -1,0 +1,71 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.21.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @marauder/shared build
+      - run: pnpm --filter @marauder/api exec prisma generate
+      - run: pnpm --filter @marauder/api test
+      - run: pnpm --filter @marauder/web typecheck
+      - run: pnpm build
+
+  e2e:
+    runs-on: ubuntu-latest
+    services:
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+      timescaledb:
+        image: timescale/timescaledb:latest-pg16
+        ports:
+          - 5432:5432
+        env:
+          POSTGRES_USER: marauder
+          POSTGRES_PASSWORD: marauder
+          POSTGRES_DB: marauder
+        options: >-
+          --health-cmd "pg_isready -U marauder -d marauder"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://marauder:marauder@localhost:5432/marauder?schema=public
+      REDIS_URL: redis://localhost:6379
+      MQTT_URL: mqtt://localhost:1883
+      WEB_ORIGIN: http://localhost:5173
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.21.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @marauder/shared build
+      - run: pnpm --filter @marauder/api exec prisma generate
+      - run: pnpm --filter @marauder/api exec prisma migrate deploy
+      - run: pnpm --filter @marauder/api prisma:seed
+      - run: pnpm --filter @marauder/api test:e2e
