@@ -1,7 +1,8 @@
-import { Body, Controller, Get, Param, Patch } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, UseGuards } from '@nestjs/common';
 import { Entity } from '@marauder/shared';
 import { EntitiesService } from './entities.service';
 import { TagEntityDto } from './dto/tag-entity.dto';
+import { AdminGuard } from '../auth/admin.guard';
 
 @Controller('entities')
 export class EntitiesController {
@@ -18,6 +19,7 @@ export class EntitiesController {
   }
 
   @Patch(':id')
+  @UseGuards(AdminGuard)
   tag(@Param('id') id: string, @Body() body: TagEntityDto): Promise<Entity> {
     return this.entities.tag(id, body);
   }

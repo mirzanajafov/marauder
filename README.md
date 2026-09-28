@@ -27,6 +27,7 @@ jumping. History goes into a TimescaleDB hypertable so you can replay a session.
 - NestJS + TypeScript API
 - MQTT (Mosquitto) for signal ingest
 - Redis for fingerprint resolution, caching, and Socket.IO scale-out
+- JWT auth guarding the write endpoints
 - TimescaleDB for position history
 - React + Vite map UI
 - A simulator that generates realistic noisy receiver traffic, so you can run the
@@ -42,7 +43,8 @@ pnpm dev
 ```
 
 Then open the web app, watch tags appear as "unknown", and name one. Restart the
-simulator and it comes back already named.
+simulator and it comes back already named. Tagging and the config tab need the admin
+password (`ADMIN_PASSWORD`, see `.env.example`); log in from the top bar.
 
 ## Layout
 

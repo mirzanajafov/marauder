@@ -1,7 +1,8 @@
-import { Body, Controller, Get, Put } from '@nestjs/common';
+import { Body, Controller, Get, Put, UseGuards } from '@nestjs/common';
 import { FloorPlan } from '@marauder/shared';
 import { FloorPlanService } from './floorplan.service';
 import { UpdateFloorPlanDto } from './dto/update-floorplan.dto';
+import { AdminGuard } from '../auth/admin.guard';
 
 @Controller('floorplan')
 export class FloorPlanController {
@@ -13,6 +14,7 @@ export class FloorPlanController {
   }
 
   @Put()
+  @UseGuards(AdminGuard)
   update(@Body() body: UpdateFloorPlanDto): Promise<FloorPlan> {
     return this.floorplan.update(body);
   }

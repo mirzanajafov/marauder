@@ -12,10 +12,12 @@ import { IngestModule } from './ingest/ingest.module';
 import { HistoryModule } from './history/history.module';
 import { FloorPlanModule } from './floorplan/floorplan.module';
 import { HealthController } from './health.controller';
+import { AuthModule } from './auth/auth.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
+    AuthModule,
     EventEmitterModule.forRoot(),
     RedisModule,
     PrismaModule,

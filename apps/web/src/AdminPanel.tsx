@@ -4,9 +4,10 @@ import { Entity } from '@marauder/shared';
 interface Props {
   entities: Entity[];
   onTag: (id: string, name: string) => Promise<void>;
+  authed: boolean;
 }
 
-export function AdminPanel({ entities, onTag }: Props) {
+export function AdminPanel({ entities, onTag, authed }: Props) {
   const unknown = entities.filter((e) => e.status === 'unknown');
   const tagged = entities.filter((e) => e.status === 'tagged');
 
@@ -16,7 +17,7 @@ export function AdminPanel({ entities, onTag }: Props) {
         <h2>Unknown ({unknown.length})</h2>
         {unknown.length === 0 && <p className="muted">none yet</p>}
         {unknown.map((e) => (
-          <TagRow key={e.id} entity={e} onTag={onTag} />
+          <TagRow key={e.id} entity={e} onTag={onTag} authed={authed} />
         ))}
       </section>
       <section>
@@ -33,7 +34,7 @@ export function AdminPanel({ entities, onTag }: Props) {
   );
 }
 
-function TagRow({ entity, onTag }: { entity: Entity; onTag: (id: string, name: string) => Promise<void> }) {
+function TagRow({ entity, onTag, authed }: { entity: Entity; onTag: (id: string, name: string) => Promise<void>; authed: boolean }) {
   const [name, setName] = useState('');
   const [busy, setBusy] = useState(false);
 
@@ -55,15 +56,15 @@ function TagRow({ entity, onTag }: { entity: Entity; onTag: (id: string, name: s
       <input
         value={name}
         onChange={(e) => setName(e.target.value)}
-        placeholder="assign a name"
-        disabled={busy}
+        placeholder={authed ? 'assign a name' : 'log in to tag'}
+        disabled={busy || !authed}
         onKeyDown={(e) => {
           if (e.key === 'Enter') {
             void submit();
           }
         }}
       />
-      <button onClick={() => void submit()} disabled={busy || !name.trim()}>
+      <button onClick={() => void submit()} disabled={busy || !name.trim() || !authed}>
         tag
       </button>
     </div>

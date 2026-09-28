@@ -6,6 +6,7 @@ import { FloorMap } from './FloorMap';
 interface Props {
   receivers: Receiver[];
   floor: FloorPlan;
+  authed: boolean;
   onReceiversChange: () => void;
   onFloorChange: (floor: FloorPlan) => void;
 }
@@ -13,7 +14,7 @@ interface Props {
 const NO_POSITIONS = {};
 const NO_ENTITIES = {};
 
-export function ConfigPanel({ receivers, floor, onReceiversChange, onFloorChange }: Props) {
+export function ConfigPanel({ receivers, floor, authed, onReceiversChange, onFloorChange }: Props) {
   const [imageUrl, setImageUrl] = useState(floor.imageUrl ?? '');
   const [width, setWidth] = useState(String(floor.width));
   const [height, setHeight] = useState(String(floor.height));
@@ -72,7 +73,7 @@ export function ConfigPanel({ receivers, floor, onReceiversChange, onFloorChange
               <input value={height} onChange={(e) => setHeight(e.target.value)} inputMode="decimal" />
             </label>
           </div>
-          <button className="primary" onClick={() => void saveFloor()}>
+          <button className="primary" onClick={() => void saveFloor()} disabled={!authed}>
             save floor plan
           </button>
         </section>
@@ -86,7 +87,7 @@ export function ConfigPanel({ receivers, floor, onReceiversChange, onFloorChange
             <input value={draft.x} onChange={(e) => setDraft({ ...draft, x: e.target.value })} placeholder="x" inputMode="decimal" />
             <input value={draft.y} onChange={(e) => setDraft({ ...draft, y: e.target.value })} placeholder="y" inputMode="decimal" />
           </div>
-          <button className="primary" onClick={() => void addReceiver()} disabled={!draft.id.trim() || !draft.name.trim()}>
+          <button className="primary" onClick={() => void addReceiver()} disabled={!authed || !draft.id.trim() || !draft.name.trim()}>
             add
           </button>
         </section>
@@ -94,7 +95,7 @@ export function ConfigPanel({ receivers, floor, onReceiversChange, onFloorChange
         <section>
           <h2>Receivers ({receivers.length})</h2>
           {receivers.map((r) => (
-            <ReceiverRow key={r.id} receiver={r} onChange={onReceiversChange} />
+            <ReceiverRow key={r.id} receiver={r} onChange={onReceiversChange} authed={authed} />
           ))}
         </section>
       </aside>
@@ -102,7 +103,7 @@ export function ConfigPanel({ receivers, floor, onReceiversChange, onFloorChange
   );
 }
 
-function ReceiverRow({ receiver, onChange }: { receiver: Receiver; onChange: () => void }) {
+function ReceiverRow({ receiver, onChange, authed }: { receiver: Receiver; onChange: () => void; authed: boolean }) {
   const [name, setName] = useState(receiver.name);
   const [x, setX] = useState(String(receiver.x));
   const [y, setY] = useState(String(receiver.y));
@@ -134,10 +135,10 @@ function ReceiverRow({ receiver, onChange }: { receiver: Receiver; onChange: () 
       <input value={name} onChange={(e) => setName(e.target.value)} disabled={busy} />
       <input className="num" value={x} onChange={(e) => setX(e.target.value)} disabled={busy} inputMode="decimal" />
       <input className="num" value={y} onChange={(e) => setY(e.target.value)} disabled={busy} inputMode="decimal" />
-      <button onClick={() => void save()} disabled={busy}>
+      <button onClick={() => void save()} disabled={busy || !authed}>
         save
       </button>
-      <button className="danger" onClick={() => void remove()} disabled={busy}>
+      <button className="danger" onClick={() => void remove()} disabled={busy || !authed}>
         ✕
       </button>
     </div>
