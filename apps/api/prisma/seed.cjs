@@ -1,5 +1,5 @@
 const { PrismaClient } = require('@prisma/client');
-const { DEFAULT_RECEIVERS } = require('@marauder/shared');
+const { DEFAULT_RECEIVERS, FLOOR, DEFAULT_FLOORPLAN_ID } = require('@marauder/shared');
 
 async function main() {
   const prisma = new PrismaClient();
@@ -10,6 +10,11 @@ async function main() {
       create: r,
     });
   }
+  await prisma.floorPlan.upsert({
+    where: { id: DEFAULT_FLOORPLAN_ID },
+    update: {},
+    create: { id: DEFAULT_FLOORPLAN_ID, imageUrl: null, width: FLOOR.width, height: FLOOR.height, floor: 0 },
+  });
   await prisma.$disconnect();
 }
 

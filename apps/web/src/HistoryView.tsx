@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { EntityStatus, HistoryPoint, HistorySummary, PositionUpdate, Receiver } from '@marauder/shared';
+import { EntityStatus, FloorPlan, HistoryPoint, HistorySummary, PositionUpdate, Receiver } from '@marauder/shared';
 import { fetchHistory, fetchHistorySummary } from './api';
 import { FloorMap } from './FloorMap';
 
@@ -13,9 +13,10 @@ interface Frame {
 
 interface Props {
   receivers: Receiver[];
+  floor: FloorPlan;
 }
 
-export function HistoryView({ receivers }: Props) {
+export function HistoryView({ receivers, floor }: Props) {
   const [summary, setSummary] = useState<HistorySummary | null>(null);
   const [points, setPoints] = useState<HistoryPoint[]>([]);
   const [idx, setIdx] = useState(0);
@@ -119,7 +120,14 @@ export function HistoryView({ receivers }: Props) {
 
   return (
     <div className="history">
-      <FloorMap receivers={receivers} entities={{}} positions={current.positions} />
+      <FloorMap
+        width={floor.width}
+        height={floor.height}
+        imageUrl={floor.imageUrl}
+        receivers={receivers}
+        entities={{}}
+        positions={current.positions}
+      />
       <div className="controls">
         <button className="play" onClick={() => setPlaying((p) => !p)}>
           {playing ? 'pause' : 'play'}

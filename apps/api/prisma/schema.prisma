@@ -40,3 +40,13 @@ model Position {
   @@index([entityId, time])
   @@map("positions")
 }
+
+model FloorPlan {
+  id       String  @id
+  imageUrl String? @map("image_url")
+  width    Float
+  height   Float
+  floor    Int     @default(0)
+
+  @@map("floorplans")
+}

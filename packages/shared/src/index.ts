@@ -105,3 +105,12 @@ export interface HistoryPoint {
   name: string | null;
   status: EntityStatus;
 }
+
+export interface FloorPlan {
+  imageUrl: string | null;
+  width: number;
+  height: number;
+  floor: number;
+}
+
+export const DEFAULT_FLOORPLAN_ID = 'default';
