@@ -22,8 +22,8 @@ type Mode = 'live' | 'history' | 'config';
 type Trail = { x: number; y: number };
 
 const DEFAULT_FLOOR: FloorPlan = { imageUrl: null, width: DEFAULT_SCENE.width, height: DEFAULT_SCENE.height, floor: 0 };
-const TRAIL_LEN = 10;
-const TRAIL_MIN_MOVE = 0.45;
+const TRAIL_LEN = 6;
+const TRAIL_MIN_MOVE = 0.5;
 
 export function App() {
   const [mode, setMode] = useState<Mode>('live');

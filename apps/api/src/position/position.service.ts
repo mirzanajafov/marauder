@@ -28,7 +28,7 @@ interface Track {
 
 const STALE_READING_MS = 3_000;
 const DROP_TRACK_MS = 12_000;
-const EMA_ALPHA = 0.22;
+const EMA_ALPHA = 0.18;
 
 @Injectable()
 export class PositionService implements OnModuleInit, OnModuleDestroy {

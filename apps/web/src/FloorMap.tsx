@@ -98,15 +98,16 @@ export function FloorMap({ width, height, imageUrl, walls, receivers, entities, 
           const color = PALETTE[hashId(p.entityId) % PALETTE.length];
           const label = entity?.name ?? p.name ?? 'Unknown';
           const trail = trails?.[p.entityId] ?? [{ x: p.x, y: p.y }];
-          const dy = (((hashId(p.entityId) % 5) - 2) * 1.6);
-          const w = label.length * 0.6 + 0.8;
+          const dy = (((hashId(p.entityId) % 5) - 2) * 1.9);
+          const w = label.length * 0.52 + 0.7;
           const lx = p.x + 0.7;
-          const ly = p.y - 2 + dy;
+          const ly = p.y - 1.9 + dy;
           return (
             <g key={p.entityId}>
               {footprints(p.entityId, trail, color)}
-              <rect x={lx} y={ly} width={w} height={1.5} rx={0.4} fill="#0d1117" opacity={0.82} stroke={color} strokeWidth={0.07} />
-              <text x={lx + 0.4} y={ly + 1.02} className="entity-label">
+              <line x1={p.x} y1={p.y} x2={lx + 0.2} y2={ly + 0.65} stroke={color} strokeWidth={0.05} opacity={0.5} />
+              <rect x={lx} y={ly} width={w} height={1.3} rx={0.35} fill="#0d1117" opacity={0.85} stroke={color} strokeWidth={0.07} />
+              <text x={lx + 0.35} y={ly + 0.9} className="entity-label">
                 {label}
               </text>
             </g>
@@ -126,19 +127,19 @@ function footprints(id: string, pts: Trail[], color: string): JSX.Element[] {
     const angle = Math.atan2(p.y - ref.y, p.x - ref.x);
     const deg = (angle * 180) / Math.PI;
     const side = i % 2 === 0 ? 1 : -1;
-    const ox = Math.cos(angle + Math.PI / 2) * 0.28 * side;
-    const oy = Math.sin(angle + Math.PI / 2) * 0.28 * side;
+    const ox = Math.cos(angle + Math.PI / 2) * 0.22 * side;
+    const oy = Math.sin(angle + Math.PI / 2) * 0.22 * side;
     const head = i === last;
     const opacity = last === 0 ? 0.95 : 0.14 + 0.81 * (i / last);
     const cx = p.x + ox;
     const cy = p.y + oy;
     if (head) {
-      els.push(<circle key={`${id}-h`} cx={p.x} cy={p.y} r={0.95} fill={color} opacity={0.16} />);
+      els.push(<circle key={`${id}-h`} cx={p.x} cy={p.y} r={0.55} fill={color} opacity={0.13} />);
     }
     els.push(
       <g key={`${id}-${i}`} transform={`translate(${cx} ${cy}) rotate(${deg})`} fill={color} opacity={opacity}>
-        <ellipse cx={0.17} cy={0} rx={head ? 0.34 : 0.29} ry={head ? 0.18 : 0.15} />
-        <ellipse cx={-0.24} cy={0} rx={head ? 0.15 : 0.13} ry={head ? 0.12 : 0.1} />
+        <ellipse cx={0.15} cy={0} rx={head ? 0.3 : 0.24} ry={head ? 0.16 : 0.13} />
+        <ellipse cx={-0.2} cy={0} rx={head ? 0.13 : 0.11} ry={head ? 0.11 : 0.09} />
       </g>,
     );
   }
