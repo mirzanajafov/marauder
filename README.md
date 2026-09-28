@@ -9,6 +9,8 @@ The idea comes from the Marauder's Map: named markers gliding around a building 
 real time. Here the named things are tags people or assets carry on purpose, not
 phones tracked without consent.
 
+![Live tracking on the floor plan](assets/marauder-demo.gif)
+
 ## How it works
 
 A receiver sees a tag and publishes `{ fingerprint, receiverId, rssi, txPower, ts }`
