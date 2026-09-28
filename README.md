@@ -1,5 +1,7 @@
 # Marauder
 
+**Live demo:** https://marauder.169-58-177-61.sslip.io — the map is open to watch; naming people needs the admin password.
+
 Real-time indoor positioning for opt-in tags. I built it to see how far you can
 push RSSI-based tracking with a clean streaming pipeline: fixed BLE/Wi-Fi tags
 report to fixed receivers, and the backend turns that noisy stream into live dots
