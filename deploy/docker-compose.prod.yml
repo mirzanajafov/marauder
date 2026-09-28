@@ -1,0 +1,89 @@
+name: marauder
+
+services:
+  timescaledb:
+    image: timescale/timescaledb:latest-pg16
+    container_name: marauder-timescaledb
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: marauder
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: marauder
+    volumes:
+      - marauder_timescale:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U marauder -d marauder"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    networks:
+      - internal
+
+  redis:
+    image: redis:7-alpine
+    container_name: marauder-redis
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "no", "--save", ""]
+    networks:
+      - internal
+
+  mosquitto:
+    image: eclipse-mosquitto:2
+    container_name: marauder-mosquitto
+    restart: unless-stopped
+    volumes:
+      - ../infra/mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+    networks:
+      - internal
+
+  api:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.api
+    container_name: marauder-api
+    restart: unless-stopped
+    env_file: .env
+    depends_on:
+      timescaledb:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      mosquitto:
+        condition: service_started
+    networks:
+      - internal
+
+  web:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.web
+    container_name: marauder-web
+    restart: unless-stopped
+    depends_on:
+      - api
+    networks:
+      - internal
+      - edge
+
+  simulator:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.simulator
+    container_name: marauder-simulator
+    restart: unless-stopped
+    env_file: .env
+    depends_on:
+      - mosquitto
+      - api
+    networks:
+      - internal
+
+networks:
+  internal:
+    name: marauder_internal
+  edge:
+    name: edge
+    external: true
+
+volumes:
+  marauder_timescale:

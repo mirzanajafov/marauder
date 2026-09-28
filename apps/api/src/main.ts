@@ -6,6 +6,10 @@ import { RedisIoAdapter } from './tracking/redis-io.adapter';
 
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AppModule);
+  const prefix = process.env.API_PREFIX;
+  if (prefix) {
+    app.setGlobalPrefix(prefix);
+  }
   const webOrigin = process.env.WEB_ORIGIN ?? 'http://localhost:5173';
   app.enableCors({ origin: webOrigin });
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
