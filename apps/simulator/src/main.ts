@@ -20,7 +20,7 @@ interface Tag {
 const TAG_COUNT = Number(process.env.TAG_COUNT ?? 6) || 6;
 const HZ = Number(process.env.SIM_HZ ?? 10) || 10;
 const SPEED = Number(process.env.SIM_SPEED ?? 1.4) || 1.4;
-const NOISE_DB = Number(process.env.SIM_NOISE_DB ?? 2.5) || 2.5;
+const NOISE_DB = Number(process.env.SIM_NOISE_DB ?? 1.8) || 1.8;
 const DROP_PROB = Number(process.env.SIM_DROP_PROB ?? 0.08);
 const MQTT_URL = process.env.MQTT_URL ?? 'mqtt://localhost:1883';
 
