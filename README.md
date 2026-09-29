@@ -56,3 +56,20 @@ password (`ADMIN_PASSWORD`, see `.env.example`); log in from the top bar.
 - `apps/simulator` — MQTT traffic generator
 - `apps/web` — map + admin UI
 - `packages/shared` — shared types
+
+## Real sensors
+
+The map is fed over MQTT, so any receiver that publishes `sensors/<receiverId>/signals`
+with `{ fingerprint, receiverId, rssi, txPower }` works — the simulator is just one
+source. Two reference receivers live in `hardware/`:
+
+- `hardware/esp32-receiver` — an ESP32 sketch (PlatformIO) that BLE-scans and publishes
+  RSSI. Set the wifi, MQTT host and `RECEIVER_ID` at the top, flash three boards placed
+  apart, and register them in the config tab.
+- `hardware/ble-scanner` — a cross-platform Python scanner for a laptop or Raspberry Pi.
+  Install with `pip install -r requirements.txt`, then run
+  `MQTT_HOST=... RECEIVER_ID=R1 python scanner.py`.
+
+Use fixed-id BLE beacons (or a phone in beacon mode) as tags; each shows up as unknown
+until you name it. Set each receiver's position in the config tab and tune
+`PATH_LOSS_EXPONENT` and txPower for your space.
