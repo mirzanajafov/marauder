@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/mirzanajafov/marauder/actions/workflows/ci.yml/badge.svg)](https://github.com/mirzanajafov/marauder/actions/workflows/ci.yml)
 
-**Live demo:** https://marauder.169-58-177-61.sslip.io — the map is open to watch; naming people needs the admin password.
+**Live demo:** [marauder.najafov.dev](https://marauder.najafov.dev) — the map is open to watch; naming people needs the admin password.
 
 Real-time indoor positioning for opt-in tags. I built it to see how far you can
 push RSSI-based tracking with a clean streaming pipeline: fixed BLE/Wi-Fi tags
