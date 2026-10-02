@@ -78,6 +78,26 @@ services:
     networks:
       - internal
 
+  backup:
+    image: timescale/timescaledb:latest-pg16
+    container_name: marauder-backup
+    restart: unless-stopped
+    entrypoint: ["sh", "/usr/local/bin/backup.sh"]
+    environment:
+      PGHOST: timescaledb
+      PGUSER: marauder
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+      PGDATABASE: marauder
+      KEEP_DAYS: ${BACKUP_KEEP_DAYS:-14}
+    volumes:
+      - ./backup.sh:/usr/local/bin/backup.sh:ro
+      - marauder_backups:/backups
+    depends_on:
+      timescaledb:
+        condition: service_healthy
+    networks:
+      - internal
+
 networks:
   internal:
     name: marauder_internal
@@ -87,3 +107,4 @@ networks:
 
 volumes:
   marauder_timescale:
+  marauder_backups:
