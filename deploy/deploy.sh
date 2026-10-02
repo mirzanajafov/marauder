@@ -11,7 +11,7 @@ healthy() {
   for _ in $(seq 1 60); do
     if "${compose[@]}" exec -T api node -e \
       "fetch('http://localhost:3001/api/health').then((r) => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))" 2>/dev/null &&
-      "${compose[@]}" exec -T web wget -q -O /dev/null http://localhost/ 2>/dev/null; then
+      "${compose[@]}" exec -T web wget -q -O /dev/null http://127.0.0.1/ 2>/dev/null; then
       return 0
     fi
     sleep 5
