@@ -52,6 +52,26 @@ Then open the web app, watch tags appear as "unknown", and name one. Restart the
 simulator and it comes back already named. Tagging and the config tab need the admin
 password (`ADMIN_PASSWORD`, see `.env.example`); log in from the top bar.
 
+## Deploying
+
+The live demo runs from `deploy/docker-compose.prod.yml` on a small VPS, behind a
+Caddy that several of my projects share. Nothing publishes a port; the web container
+joins that proxy's `edge` network. A release is `deploy/deploy.sh`: it backs up,
+fast-forwards to `origin/main`, rebuilds, runs the migrations, and waits for the API
+and the web app to answer. If they don't, it resets to the commit it started from and
+rebuilds that.
+
+The backup container dumps the database every night and keeps two weeks. I leave the
+position history out on purpose. It is simulator traffic that refills itself within
+minutes, and keeping it made a 3 GB volume out of what is really a few kilobytes of
+names, floor plans and receivers. Restoring one into an empty database:
+
+```
+docker exec marauder-timescaledb psql -U marauder -c "SELECT timescaledb_pre_restore();"
+docker exec -i marauder-timescaledb pg_restore -U marauder -d marauder --no-owner < marauder-<time>.dump
+docker exec marauder-timescaledb psql -U marauder -c "SELECT timescaledb_post_restore();"
+```
+
 ## Layout
 
 - `apps/api` — NestJS backend
