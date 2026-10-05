@@ -128,6 +128,16 @@ docker exec -i marauder-timescaledb pg_restore -U marauder -d marauder --no-owne
 docker exec marauder-timescaledb psql -U marauder -c "SELECT timescaledb_post_restore();"
 ```
 
+The history itself keeps one day, which I learned the hard way. Six simulated tags write
+about 40 rows a second, and with no retention that had become a 3.65 GB table in under
+four days, on a server my other projects share. The history summary took 28 seconds
+because it counted every row, and the history view asked for the whole range at once and
+never finished loading. Now the table is cut into hourly chunks and a Timescale job drops
+the ones older than 24 hours every hour. The summary only reads the first and last
+timestamp (10 ms on the server), and the view loads the last 10 minutes or the last hour.
+The API refuses any request that would need more than 2,000 buckets, so nobody can ask
+for a week at half-second resolution. Those two windows take 100 and 160 ms.
+
 ## Layout
 
 - `apps/api` — NestJS backend
