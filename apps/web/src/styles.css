@@ -290,6 +290,7 @@ body {
 }
 
 .field input {
+  min-width: 0;
   background: var(--bg);
   border: 1px solid var(--line);
   color: var(--text);
@@ -305,6 +306,7 @@ body {
 
 .dims .field {
   flex: 1;
+  min-width: 0;
 }
 
 .grid2 {
@@ -412,4 +414,70 @@ button.danger {
   text-anchor: middle;
   letter-spacing: 0.03px;
   pointer-events: none;
+}
+
+@media (max-width: 900px) {
+  .app {
+    height: auto;
+    min-height: 100dvh;
+  }
+
+  .topbar {
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 10px 12px;
+  }
+
+  .modes {
+    margin-left: 0;
+  }
+
+  .auth {
+    width: 100%;
+    margin-left: 0;
+  }
+
+  .auth input {
+    flex: 1;
+    width: auto;
+    min-width: 0;
+    font-size: 16px;
+  }
+
+  .layout {
+    flex-direction: column;
+  }
+
+  .map {
+    flex: none;
+    padding: 8px;
+  }
+
+  .floor {
+    height: auto;
+  }
+
+  .panel {
+    width: 100%;
+    border-left: none;
+    border-top: 1px solid var(--line);
+  }
+
+  .row input,
+  .field input,
+  .grid2 input {
+    font-size: 16px;
+  }
+
+  .history {
+    padding: 8px;
+  }
+
+  .history .map {
+    flex: none;
+  }
+
+  .controls {
+    flex-wrap: wrap;
+  }
 }
