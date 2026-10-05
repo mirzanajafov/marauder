@@ -1,4 +1,4 @@
-import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { DEFAULT_PATH_LOSS_EXPONENT, Entity, FLOOR, PositionUpdate, RawSignal, Receiver } from '@marauder/shared';
 import { FloorPlanService } from '../floorplan/floorplan.service';
@@ -7,8 +7,13 @@ import { ReceiversService } from '../receivers/receivers.service';
 import { POSITION_ALPHA, RSSI_ALPHA, Tracker } from './tracker';
 import { Bounds, fitPosition } from './trilateration';
 
+export const WRITE_FAILURE_LOG_MS = 30_000;
+
 @Injectable()
 export class PositionService implements OnModuleInit, OnModuleDestroy {
+  private readonly logger = new Logger(PositionService.name);
+  private failedWrites = 0;
+  private lastFailureLog = Number.NEGATIVE_INFINITY;
   private bounds: Bounds = { width: FLOOR.width, height: FLOOR.height };
   private readonly tracker = new Tracker({
     pathLossExponent:
@@ -82,8 +87,15 @@ export class PositionService implements OnModuleInit, OnModuleDestroy {
         })),
         skipDuplicates: true,
       });
-    } catch {
-      return;
+    } catch (error) {
+      this.failedWrites += 1;
+      if (now - this.lastFailureLog >= WRITE_FAILURE_LOG_MS) {
+        this.lastFailureLog = now;
+        const reason = error instanceof Error ? error.message : String(error);
+        this.logger.error(
+          `could not write ${updates.length} positions to history (${this.failedWrites} failed batches so far): ${reason}`,
+        );
+      }
     }
   }
 }

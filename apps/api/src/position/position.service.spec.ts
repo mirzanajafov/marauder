@@ -5,6 +5,7 @@ import {
   Entity,
   RawSignal,
 } from '@marauder/shared';
+import { Logger } from '@nestjs/common';
 import { PositionService } from './position.service';
 
 function cleanRssi(px: number, py: number, x: number, y: number): number {
@@ -88,5 +89,43 @@ describe('PositionService', () => {
 
     expect(events.emit).not.toHaveBeenCalled();
     expect((service as any).tracker.size).toBe(0);
+  });
+
+  it('keeps the live map going and logs once when history writes fail', async () => {
+    const receiversService = { list: jest.fn().mockResolvedValue(DEFAULT_RECEIVERS) };
+    const floorPlan = { get: jest.fn().mockResolvedValue({ imageUrl: null, width: 40, height: 25, floor: 0 }) };
+    const prisma = { position: { createMany: jest.fn().mockRejectedValue(new Error('connection refused')) } };
+    const events = { emit: jest.fn() };
+    const error = jest.spyOn(Logger.prototype, 'error').mockImplementation(() => undefined);
+    const service = new PositionService(receiversService as any, floorPlan as any, prisma as any, events as any);
+    await (service as any).refreshLayout();
+
+    const entity: Entity = {
+      id: 'e3',
+      fingerprint: 'tag-03',
+      name: 'Ada',
+      kind: 'person',
+      status: 'tagged',
+      firstSeen: 0,
+      lastSeen: 0,
+    };
+    for (let flush = 0; flush < 3; flush++) {
+      for (const r of DEFAULT_RECEIVERS) {
+        service.record(entity, {
+          fingerprint: 'tag-03',
+          receiverId: r.id,
+          rssi: cleanRssi(20, 12, r.x, r.y),
+          txPower: DEFAULT_TX_POWER,
+          ts: Date.now(),
+        });
+      }
+      await expect((service as any).flush()).resolves.toBeUndefined();
+    }
+
+    expect(events.emit).toHaveBeenCalledTimes(3);
+    expect(prisma.position.createMany).toHaveBeenCalledTimes(3);
+    expect(error).toHaveBeenCalledTimes(1);
+    expect(error.mock.calls[0][0]).toContain('connection refused');
+    error.mockRestore();
   });
 });
