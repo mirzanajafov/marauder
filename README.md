@@ -88,12 +88,22 @@ the radio path, and the offset row is one draw of five offsets, not an average o
 
 - NestJS + TypeScript API
 - MQTT (Mosquitto) for signal ingest
-- Redis for fingerprint resolution, caching, and Socket.IO scale-out
+- Redis for fingerprint resolution and the entity cache
 - JWT auth guarding the write endpoints
 - TimescaleDB for position history
 - React + Vite map UI
-- A simulator that generates realistic noisy receiver traffic, so you can run the
-  whole thing without hardware
+- A simulator that generates noisy receiver traffic, so you can run the whole thing
+  without hardware
+
+It runs as one API instance, and I want to be clear about why. The Socket.IO Redis adapter
+is wired, so sockets on several instances would share broadcasts, but that alone doesn't
+make it scale out: every instance subscribes to every receiver's topic and keeps its own
+tracks in memory, so two instances would both solve every tag and broadcast it twice.
+Scaling out needs one owner per tag, either a lease per group of tags in Redis or a broker
+that partitions by fingerprint. The demo doesn't need it yet. One instance takes the
+simulator's ~280 signals a second at somewhere between 14% and 56% of one core in a quick
+sample on the server, and every signal still costs two Redis reads to resolve its
+fingerprint, which is the first thing I'd cache in process if the load grew.
 
 ## Run it
 
