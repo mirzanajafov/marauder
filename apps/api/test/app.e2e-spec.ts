@@ -76,12 +76,26 @@ describe('API (e2e)', () => {
 
   it('reports a history summary', async () => {
     const res = await request(app.getHttpServer()).get('/history/summary').expect(200);
-    expect(typeof res.body.count).toBe('number');
+    expect(res.body).toHaveProperty('from');
+    expect(res.body).toHaveProperty('to');
+    expect(res.body).not.toHaveProperty('count');
   });
 
   it('returns history points as an array', async () => {
     const res = await request(app.getHttpServer()).get('/history?bucketMs=1000').expect(200);
     expect(Array.isArray(res.body)).toBe(true);
+  });
+
+  it('refuses a window that would need more than two thousand buckets', async () => {
+    await request(app.getHttpServer())
+      .get('/history?from=2026-01-01T00:00:00Z&to=2026-01-02T00:00:00Z&bucketMs=500')
+      .expect(400);
+    await request(app.getHttpServer())
+      .get('/history?from=2026-01-01T00:10:00Z&to=2026-01-01T00:00:00Z&bucketMs=500')
+      .expect(400);
+    await request(app.getHttpServer())
+      .get('/history?from=2026-01-01T00:00:00Z&to=2026-01-01T01:00:00Z&bucketMs=3000')
+      .expect(200);
   });
 
   it('reads and rewrites the floor plan with a token', async () => {

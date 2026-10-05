@@ -3,7 +3,6 @@ import {
   EntityStatus,
   FloorPlan,
   HistoryPoint,
-  HistorySummary,
   PositionUpdate,
   Receiver,
   Wall,
@@ -11,7 +10,12 @@ import {
 import { fetchHistory, fetchHistorySummary } from './api';
 import { FloorMap } from './FloorMap';
 
-const BUCKET_MS = 500;
+const FRAMES = 1200;
+const MIN_BUCKET_MS = 500;
+const WINDOWS = [
+  { label: '10 min', ms: 10 * 60_000 },
+  { label: '1 h', ms: 60 * 60_000 },
+];
 const SPEEDS = [0.5, 1, 2, 4];
 const TRAIL_LEN = 6;
 
@@ -27,24 +31,27 @@ interface Props {
 }
 
 export function HistoryView({ receivers, floor, walls }: Props) {
-  const [summary, setSummary] = useState<HistorySummary | null>(null);
+  const [windowMs, setWindowMs] = useState(WINDOWS[0].ms);
   const [points, setPoints] = useState<HistoryPoint[]>([]);
   const [idx, setIdx] = useState(0);
   const [playing, setPlaying] = useState(false);
   const [speed, setSpeed] = useState(1);
   const [loading, setLoading] = useState(true);
+  const bucketMs = Math.max(MIN_BUCKET_MS, Math.round(windowMs / FRAMES));
 
   useEffect(() => {
     let active = true;
     setLoading(true);
+    setPlaying(false);
     fetchHistorySummary()
       .then(async (s) => {
         if (!active) {
           return;
         }
-        setSummary(s);
-        if (s.from && s.to && s.count > 0) {
-          const pts = await fetchHistory(s.from, s.to, BUCKET_MS);
+        if (s.from && s.to) {
+          const to = new Date(s.to).getTime();
+          const from = Math.max(new Date(s.from).getTime(), to - windowMs);
+          const pts = await fetchHistory(new Date(from).toISOString(), s.to, bucketMs);
           if (active) {
             setPoints(pts);
             setIdx(0);
@@ -62,7 +69,7 @@ export function HistoryView({ receivers, floor, walls }: Props) {
     return () => {
       active = false;
     };
-  }, []);
+  }, [windowMs, bucketMs]);
 
   const frames = useMemo<Frame[]>(() => {
     const buckets = new Map<number, HistoryPoint[]>();
@@ -118,9 +125,9 @@ export function HistoryView({ receivers, floor, walls }: Props) {
         }
         return i + 1;
       });
-    }, BUCKET_MS / speed);
+    }, bucketMs / speed);
     return () => clearInterval(interval);
-  }, [playing, speed, frames.length]);
+  }, [playing, speed, frames.length, bucketMs]);
 
   if (loading) {
     return (
@@ -140,7 +147,6 @@ export function HistoryView({ receivers, floor, walls }: Props) {
 
   const current = frames[clamped];
   const clock = new Date(current.time).toLocaleTimeString();
-  const total = summary?.count ?? 0;
 
   return (
     <div className="history">
@@ -176,7 +182,14 @@ export function HistoryView({ receivers, floor, walls }: Props) {
             </button>
           ))}
         </div>
-        <span className="muted count">{total} samples</span>
+        <div className="speeds">
+          {WINDOWS.map((w) => (
+            <button key={w.ms} className={w.ms === windowMs ? 'active' : ''} onClick={() => setWindowMs(w.ms)}>
+              {w.label}
+            </button>
+          ))}
+        </div>
+        <span className="muted count">{points.length} points</span>
       </div>
     </div>
   );

@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { EntityStatus, HistoryPoint, HistorySummary } from '@marauder/shared';
 import { PrismaService } from '../prisma/prisma.service';
@@ -6,7 +6,6 @@ import { PrismaService } from '../prisma/prisma.service';
 interface SummaryRow {
   min: Date | null;
   max: Date | null;
-  count: bigint;
 }
 
 interface PointRow {
@@ -19,32 +18,40 @@ interface PointRow {
   status: string;
 }
 
+export const MAX_BUCKETS = 2_000;
+export const DEFAULT_WINDOW_MS = 10 * 60_000;
+
 @Injectable()
 export class HistoryService {
   constructor(private readonly prisma: PrismaService) {}
 
   async summary(): Promise<HistorySummary> {
     const rows = await this.prisma.$queryRaw<SummaryRow[]>(
-      Prisma.sql`SELECT min(time) AS min, max(time) AS max, count(*)::bigint AS count FROM positions`,
+      Prisma.sql`SELECT min(time) AS min, max(time) AS max FROM positions`,
     );
     const row = rows[0];
     return {
       from: row?.min ? row.min.toISOString() : null,
       to: row?.max ? row.max.toISOString() : null,
-      count: row ? Number(row.count) : 0,
     };
   }
 
   async query(from?: string, to?: string, bucketMs = 500): Promise<HistoryPoint[]> {
-    let start = from ? new Date(from) : null;
     let end = to ? new Date(to) : null;
-    if (!start || !end) {
+    if (!end) {
       const bounds = await this.summary();
-      if (!bounds.from || !bounds.to) {
+      if (!bounds.to) {
         return [];
       }
-      start = start ?? new Date(bounds.from);
-      end = end ?? new Date(bounds.to);
+      end = new Date(bounds.to);
+    }
+    const start = from ? new Date(from) : new Date(end.getTime() - DEFAULT_WINDOW_MS);
+    const span = end.getTime() - start.getTime();
+    if (span < 0) {
+      throw new BadRequestException('from must not be after to');
+    }
+    if (span / bucketMs > MAX_BUCKETS) {
+      throw new BadRequestException(`at most ${MAX_BUCKETS} buckets per request: shorten the window or widen bucketMs`);
     }
 
     const rows = await this.prisma.$queryRaw<PointRow[]>(

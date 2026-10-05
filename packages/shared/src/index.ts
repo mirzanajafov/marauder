@@ -93,7 +93,6 @@ export const DEFAULT_PATH_LOSS_EXPONENT = 2.5;
 export interface HistorySummary {
   from: string | null;
   to: string | null;
-  count: number;
 }
 
 export interface HistoryPoint {
