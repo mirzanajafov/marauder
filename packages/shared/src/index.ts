@@ -282,3 +282,5 @@ function buildScene(): FloorScene {
 }
 
 export const DEFAULT_SCENE: FloorScene = buildScene();
+
+export * from './sim';

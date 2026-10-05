@@ -1,0 +1,173 @@
+{
+  "run": {
+    "seed": 7,
+    "minutes": 30,
+    "tagCount": 6
+  },
+  "results": [
+    {
+      "scenario": "noise 1.2 dB (simulator default)",
+      "variants": {
+        "nearest receiver": {
+          "samples": 72000,
+          "median": 7.81,
+          "p90": 12.63,
+          "p95": 13.6,
+          "walkingMedian": 7.4,
+          "standingMedian": 7.81,
+          "outsideFloorPct": 0
+        },
+        "weighted centroid": {
+          "samples": 72000,
+          "median": 3.58,
+          "p90": 5.52,
+          "p95": 5.97,
+          "walkingMedian": 3.57,
+          "standingMedian": 3.72,
+          "outsideFloorPct": 0
+        },
+        "trilateration, raw": {
+          "samples": 72000,
+          "median": 2,
+          "p90": 3.92,
+          "p95": 4.6,
+          "walkingMedian": 1.97,
+          "standingMedian": 2.11,
+          "outsideFloorPct": 0.11
+        },
+        "trilateration + EMA 0.18 (live)": {
+          "samples": 72000,
+          "median": 1.01,
+          "p90": 1.73,
+          "p95": 1.95,
+          "walkingMedian": 1.08,
+          "standingMedian": 0.71,
+          "outsideFloorPct": 0
+        }
+      }
+    },
+    {
+      "scenario": "noise 3 dB",
+      "variants": {
+        "nearest receiver": {
+          "samples": 72000,
+          "median": 7.81,
+          "p90": 14.02,
+          "p95": 15.02,
+          "walkingMedian": 7.4,
+          "standingMedian": 7.81,
+          "outsideFloorPct": 0
+        },
+        "weighted centroid": {
+          "samples": 72000,
+          "median": 3.98,
+          "p90": 6.97,
+          "p95": 7.82,
+          "walkingMedian": 3.88,
+          "standingMedian": 4.62,
+          "outsideFloorPct": 0
+        },
+        "trilateration, raw": {
+          "samples": 72000,
+          "median": 4.92,
+          "p90": 9.91,
+          "p95": 11.66,
+          "walkingMedian": 4.85,
+          "standingMedian": 5.19,
+          "outsideFloorPct": 6.87
+        },
+        "trilateration + EMA 0.18 (live)": {
+          "samples": 72000,
+          "median": 1.88,
+          "p90": 3.51,
+          "p95": 4.06,
+          "walkingMedian": 1.89,
+          "standingMedian": 1.82,
+          "outsideFloorPct": 0.02
+        }
+      }
+    },
+    {
+      "scenario": "noise 6 dB",
+      "variants": {
+        "nearest receiver": {
+          "samples": 72000,
+          "median": 8.34,
+          "p90": 16.82,
+          "p95": 19.65,
+          "walkingMedian": 8.2,
+          "standingMedian": 8.85,
+          "outsideFloorPct": 0
+        },
+        "weighted centroid": {
+          "samples": 72000,
+          "median": 5.39,
+          "p90": 10.84,
+          "p95": 12.83,
+          "walkingMedian": 5.13,
+          "standingMedian": 6.48,
+          "outsideFloorPct": 0
+        },
+        "trilateration, raw": {
+          "samples": 72000,
+          "median": 9.28,
+          "p90": 18.55,
+          "p95": 22.1,
+          "walkingMedian": 9.15,
+          "standingMedian": 9.8,
+          "outsideFloorPct": 26.09
+        },
+        "trilateration + EMA 0.18 (live)": {
+          "samples": 72000,
+          "median": 3.59,
+          "p90": 6.77,
+          "p95": 7.9,
+          "walkingMedian": 3.54,
+          "standingMedian": 3.78,
+          "outsideFloorPct": 1.64
+        }
+      }
+    },
+    {
+      "scenario": "noise 3 dB, building at n=3.0, solver assumes 2.5",
+      "variants": {
+        "nearest receiver": {
+          "samples": 72000,
+          "median": 7.81,
+          "p90": 13.63,
+          "p95": 14.64,
+          "walkingMedian": 7.4,
+          "standingMedian": 7.81,
+          "outsideFloorPct": 0
+        },
+        "weighted centroid": {
+          "samples": 72000,
+          "median": 3.96,
+          "p90": 6.58,
+          "p95": 7.23,
+          "walkingMedian": 3.88,
+          "standingMedian": 4.53,
+          "outsideFloorPct": 0
+        },
+        "trilateration, raw": {
+          "samples": 72000,
+          "median": 6.95,
+          "p90": 21.39,
+          "p95": 29.17,
+          "walkingMedian": 6.56,
+          "standingMedian": 9.4,
+          "outsideFloorPct": 32.54
+        },
+        "trilateration + EMA 0.18 (live)": {
+          "samples": 72000,
+          "median": 3.56,
+          "p90": 17.2,
+          "p95": 20.11,
+          "walkingMedian": 3.31,
+          "standingMedian": 8.85,
+          "outsideFloorPct": 32.99
+        }
+      }
+    }
+  ]
+}
