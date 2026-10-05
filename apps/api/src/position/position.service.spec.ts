@@ -85,6 +85,6 @@ describe('PositionService', () => {
     await (service as any).flush();
 
     expect(events.emit).not.toHaveBeenCalled();
-    expect((service as any).tracks.size).toBe(0);
+    expect((service as any).tracker.size).toBe(0);
   });
 });

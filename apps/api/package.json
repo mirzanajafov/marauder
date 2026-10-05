@@ -11,7 +11,8 @@
     "prisma:seed": "node prisma/seed.cjs",
     "test": "jest --config jest.config.cjs",
     "test:watch": "jest --config jest.config.cjs --watch",
-    "test:e2e": "jest --config test/jest-e2e.cjs --runInBand"
+    "test:e2e": "jest --config test/jest-e2e.cjs --runInBand",
+    "bench:accuracy": "tsx bench/accuracy.ts"
   },
   "dependencies": {
     "@marauder/shared": "workspace:*",
@@ -44,6 +45,7 @@
     "prisma": "^5.22.0",
     "supertest": "^7.0.0",
     "ts-jest": "^29.2.5",
+    "tsx": "^4.23.15",
     "typescript": "^5.6.3"
   }
 }

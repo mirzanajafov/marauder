@@ -28,6 +28,36 @@ Positions come from a log-distance path-loss model, trilateration when three or
 more receivers hear a tag, and an exponential moving average to keep markers from
 jumping. History goes into a TimescaleDB hypertable so you can replay a session.
 
+## How accurate it is
+
+For a long time I judged this by watching the map, which says nothing. The simulator
+knows where every tag really is, so the error in metres is cheap to measure.
+`pnpm --filter @marauder/api bench:accuracy` replays the simulator's world with a fixed
+seed on a virtual clock (6 tags walking between rooms for 30 minutes), feeds the API's own
+tracker, and compares every 150 ms update with where the tag actually was. Every variant
+sees the identical signal stream, and the numbers land in `apps/api/bench/accuracy.json`.
+
+Median / p95 error in metres:
+
+| | 1.2 dB noise (simulator default) | 3 dB | 6 dB | 3 dB, wrong path-loss exponent |
+| --- | --- | --- | --- | --- |
+| nearest receiver | 7.81 / 13.60 | 7.81 / 15.02 | 8.34 / 19.65 | 7.81 / 14.64 |
+| weighted centroid | 3.58 / 5.97 | 3.98 / 7.82 | 5.39 / 12.83 | 3.96 / 7.23 |
+| trilateration, raw | 2.00 / 4.60 | 4.92 / 11.66 | 9.28 / 22.10 | 6.95 / 29.17 |
+| trilateration + EMA (live) | 1.01 / 1.95 | 1.88 / 4.06 | 3.59 / 7.90 | 3.56 / 20.11 |
+
+About a metre at the simulator's noise level, but 1.2 dB is kinder than any real building.
+Two things surprised me. From 3 dB up, raw trilateration is worse than a plain weighted
+centroid, and at 6 dB a quarter of its answers land outside the building; the smoothing is
+doing most of the work. And when the building's path-loss exponent is 3.0 while the solver
+assumes 2.5, the live output sits outside the building a third of the time. Smoothing can't
+fix that, because it's bias, not noise, and it's the case real sensors would hit first:
+nobody knows their building's exponent exactly.
+
+These numbers are a floor, not a promise. The simulator draws RSSI from the same
+log-distance model the solver inverts, with Gaussian noise, no multipath and no walls in
+the radio path.
+
 ## Stack
 
 - NestJS + TypeScript API
