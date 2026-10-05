@@ -15,10 +15,11 @@ function cleanRssi(px: number, py: number, x: number, y: number): number {
 describe('PositionService', () => {
   it('emits a batched position near the true location', async () => {
     const receiversService = { list: jest.fn().mockResolvedValue(DEFAULT_RECEIVERS) };
+    const floorPlan = { get: jest.fn().mockResolvedValue({ imageUrl: null, width: 40, height: 25, floor: 0 }) };
     const prisma = { position: { createMany: jest.fn().mockResolvedValue({ count: 1 }) } };
     const events = { emit: jest.fn() };
-    const service = new PositionService(receiversService as any, prisma as any, events as any);
-    await (service as any).refreshReceivers();
+    const service = new PositionService(receiversService as any, floorPlan as any, prisma as any, events as any);
+    await (service as any).refreshLayout();
 
     const entity: Entity = {
       id: 'e1',
@@ -60,10 +61,11 @@ describe('PositionService', () => {
 
   it('drops a track after it goes quiet', async () => {
     const receiversService = { list: jest.fn().mockResolvedValue(DEFAULT_RECEIVERS) };
+    const floorPlan = { get: jest.fn().mockResolvedValue({ imageUrl: null, width: 40, height: 25, floor: 0 }) };
     const prisma = { position: { createMany: jest.fn().mockResolvedValue({ count: 0 }) } };
     const events = { emit: jest.fn() };
-    const service = new PositionService(receiversService as any, prisma as any, events as any);
-    await (service as any).refreshReceivers();
+    const service = new PositionService(receiversService as any, floorPlan as any, prisma as any, events as any);
+    await (service as any).refreshLayout();
 
     const entity: Entity = {
       id: 'e2',

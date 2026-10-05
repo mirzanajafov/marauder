@@ -5,5 +5,6 @@ import { FloorPlanController } from './floorplan.controller';
 @Module({
   providers: [FloorPlanService],
   controllers: [FloorPlanController],
+  exports: [FloorPlanService],
 })
 export class FloorPlanModule {}

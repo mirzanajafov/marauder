@@ -7,18 +7,20 @@ import {
   createWorld,
   seededRandom,
 } from '@marauder/shared';
-import { EMA_ALPHA, Tracker, TrackerOptions } from './tracker';
-import { Anchor, Estimate, trilaterate, weightedCentroid } from './trilateration';
+import { POSITION_ALPHA, RSSI_ALPHA, Tracker, TrackerOptions } from './tracker';
+import { Anchor, Estimate, fitPosition, trilaterate, weightedCentroid } from './trilateration';
 
 export interface Scenario {
   name: string;
   noiseDb: number;
   pathLossExponent: number;
+  receiverBiasDb?: number;
 }
 
 export interface Variant {
   name: string;
   alpha: number;
+  rssiAlpha: number;
   solve: (anchors: Anchor[]) => Estimate;
 }
 
@@ -56,13 +58,39 @@ export const scenarios: Scenario[] = [
   { name: 'noise 3 dB', noiseDb: 3, pathLossExponent: DEFAULT_PATH_LOSS_EXPONENT },
   { name: 'noise 6 dB', noiseDb: 6, pathLossExponent: DEFAULT_PATH_LOSS_EXPONENT },
   { name: 'noise 3 dB, building at n=3.0, solver assumes 2.5', noiseDb: 3, pathLossExponent: 3 },
+  {
+    name: 'noise 3 dB, each receiver off by a fixed offset (sd 3 dB)',
+    noiseDb: 3,
+    pathLossExponent: DEFAULT_PATH_LOSS_EXPONENT,
+    receiverBiasDb: 3,
+  },
 ];
 
+const floor = { width: DEFAULT_SCENE.width, height: DEFAULT_SCENE.height };
+
 export const variants: Variant[] = [
-  { name: 'nearest receiver', alpha: 1, solve: nearestReceiver },
-  { name: 'weighted centroid', alpha: 1, solve: weightedCentroid },
-  { name: 'trilateration, raw', alpha: 1, solve: trilaterate },
-  { name: `trilateration + EMA ${EMA_ALPHA} (live)`, alpha: EMA_ALPHA, solve: trilaterate },
+  { name: 'nearest receiver', alpha: 1, rssiAlpha: 1, solve: nearestReceiver },
+  { name: 'weighted centroid', alpha: 1, rssiAlpha: 1, solve: weightedCentroid },
+  { name: 'trilateration, raw', alpha: 1, rssiAlpha: 1, solve: trilaterate },
+  { name: 'trilateration + EMA 0.18 (before)', alpha: 0.18, rssiAlpha: 1, solve: trilaterate },
+  {
+    name: 'log-distance fit, fixed exponent + EMA 0.18',
+    alpha: 0.18,
+    rssiAlpha: 1,
+    solve: (anchors) => fitPosition(anchors, floor, false),
+  },
+  {
+    name: `RSSI EMA ${RSSI_ALPHA} + log-distance fit, fixed exponent + EMA ${POSITION_ALPHA}`,
+    alpha: POSITION_ALPHA,
+    rssiAlpha: RSSI_ALPHA,
+    solve: (anchors) => fitPosition(anchors, floor, false),
+  },
+  {
+    name: `RSSI EMA ${RSSI_ALPHA} + log-distance fit with scale + EMA ${POSITION_ALPHA} (live)`,
+    alpha: POSITION_ALPHA,
+    rssiAlpha: RSSI_ALPHA,
+    solve: (anchors) => fitPosition(anchors, floor),
+  },
 ];
 
 function percentile(sorted: number[], p: number): number {
@@ -103,6 +131,7 @@ export function measure(scenario: Scenario, list: Variant[], run: Run): Record<s
     dwellMaxMs: 7000,
     txPower: DEFAULT_TX_POWER,
     pathLossExponent: scenario.pathLossExponent,
+    receiverBiasDb: scenario.receiverBiasDb,
     random: seededRandom(run.seed),
   });
   const receivers = new Map<string, Receiver>(DEFAULT_RECEIVERS.map((r) => [r.id, r]));
@@ -110,6 +139,7 @@ export function measure(scenario: Scenario, list: Variant[], run: Run): Record<s
     const options: TrackerOptions = {
       pathLossExponent: DEFAULT_PATH_LOSS_EXPONENT,
       alpha: variant.alpha,
+      rssiAlpha: variant.rssiAlpha,
       solve: variant.solve,
     };
     return {

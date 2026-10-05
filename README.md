@@ -24,9 +24,10 @@ and streams batched position updates to the web UI over WebSocket. When a new ta
 appears you tag it with a name once; after that it is recognized instantly from a
 Redis lookup.
 
-Positions come from a log-distance path-loss model, trilateration when three or
-more receivers hear a tag, and an exponential moving average to keep markers from
-jumping. History goes into a TimescaleDB hypertable so you can replay a session.
+Positions come from a log-distance path-loss model. Each receiver's RSSI is smoothed in
+dB, the position is fitted to those readings in log-distance space when three or more
+receivers hear a tag, and a light moving average keeps markers from jumping. History goes
+into a TimescaleDB hypertable so you can replay a session.
 
 ## How accurate it is
 
@@ -37,26 +38,51 @@ seed on a virtual clock (6 tags walking between rooms for 30 minutes), feeds the
 tracker, and compares every 150 ms update with where the tag actually was. Every variant
 sees the identical signal stream, and the numbers land in `apps/api/bench/accuracy.json`.
 
+The first run was humbling. I had been using linearised trilateration plus a moving
+average, and from 3 dB of noise up the raw trilateration was worse than a plain weighted
+centroid. At 6 dB a quarter of its answers landed outside the building. With the
+building's path-loss exponent at 3.0 while the solver assumed 2.5, the live output sat
+outside the building a third of the time, and smoothing couldn't help, because that's bias,
+not noise.
+
+So I changed three things, and kept each one only because the benchmark agreed:
+
+- **Fit in log-distance space.** RSSI noise is Gaussian in dB, and dB is the log of
+  distance, so that's where the fit minimises its error. The old solver linearised the
+  circles around one reference receiver, which amplified that receiver's noise. The
+  answer is also clamped to the floor plan now.
+- **Smooth each receiver's RSSI before solving** (EMA 0.2), not only the answer. Averaging
+  in dB averages the noise where it is linear; averaging positions after a nonlinear
+  solver doesn't. The position average went from 0.18 to 0.3 because its input is calmer.
+- **Let the fit stretch the distances.** With four or more receivers it also fits one
+  scale on the log-distances, which is what a wrong path-loss exponent does to them.
+
+The second change on its own made the wrong-exponent case worse, 3.03 m median to 5.20 m:
+with the noise averaged away, the fit settled confidently on the biased answer. The third
+change is what fixed it.
+
 Median / p95 error in metres:
 
-| | 1.2 dB noise (simulator default) | 3 dB | 6 dB | 3 dB, wrong path-loss exponent |
-| --- | --- | --- | --- | --- |
-| nearest receiver | 7.81 / 13.60 | 7.81 / 15.02 | 8.34 / 19.65 | 7.81 / 14.64 |
-| weighted centroid | 3.58 / 5.97 | 3.98 / 7.82 | 5.39 / 12.83 | 3.96 / 7.23 |
-| trilateration, raw | 2.00 / 4.60 | 4.92 / 11.66 | 9.28 / 22.10 | 6.95 / 29.17 |
-| trilateration + EMA (live) | 1.01 / 1.95 | 1.88 / 4.06 | 3.59 / 7.90 | 3.56 / 20.11 |
+| | before | after |
+| --- | --- | --- |
+| 1.2 dB noise (simulator default) | 1.01 / 1.95 | 1.03 / 1.62 |
+| 3 dB | 1.88 / 4.06 | 1.30 / 2.74 |
+| 6 dB | 3.59 / 7.90 | 2.04 / 4.98 |
+| 3 dB, building at exponent 3.0, solver assumes 2.5 | 3.56 / 20.11 | 1.20 / 2.40 |
+| 3 dB, each receiver off by a fixed offset | 8.71 / 20.02 | 4.33 / 10.28 |
 
-About a metre at the simulator's noise level, but 1.2 dB is kinder than any real building.
-Two things surprised me. From 3 dB up, raw trilateration is worse than a plain weighted
-centroid, and at 6 dB a quarter of its answers land outside the building; the smoothing is
-doing most of the work. And when the building's path-loss exponent is 3.0 while the solver
-assumes 2.5, the live output sits outside the building a third of the time. Smoothing can't
-fix that, because it's bias, not noise, and it's the case real sensors would hit first:
-nobody knows their building's exponent exactly.
+The wrong-exponent row is exactly the error the scale term models, so I added the last row
+as a check I didn't design the fix around: each receiver reads a fixed number of dB high or
+low, like a different antenna. The new estimator is better there too, and nothing lands
+outside the building any more (20% did before), but the scale term barely matters (4.53 m
+without it, 4.33 with) and it's still 3 m worse than the clean case. Per-receiver
+calibration would fix that, and it only makes sense with real hardware. At the simulator's
+default noise the median didn't move; the gain there is in the tail. A walking tag is now
+about 1.1 m off and a standing one about 0.4 m.
 
 These numbers are a floor, not a promise. The simulator draws RSSI from the same
 log-distance model the solver inverts, with Gaussian noise, no multipath and no walls in
-the radio path.
+the radio path, and the offset row is one draw of five offsets, not an average over many.
 
 ## Stack
 
