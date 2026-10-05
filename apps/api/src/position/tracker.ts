@@ -1,7 +1,8 @@
 import { Entity, PositionUpdate, RawSignal, Receiver } from '@marauder/shared';
-import { Anchor, Estimate, rssiToDistance, trilaterate } from './trilateration';
+import { Anchor, Estimate, rssiToDistance } from './trilateration';
 
 interface Reading {
+  rssi: number;
   distance: number;
   weight: number;
   ts: number;
@@ -18,23 +19,22 @@ interface Track {
 
 export const STALE_READING_MS = 3_000;
 export const DROP_TRACK_MS = 12_000;
-export const EMA_ALPHA = 0.18;
+export const POSITION_ALPHA = 0.3;
+export const RSSI_ALPHA = 0.2;
 
 export type TrackedEntity = Pick<Entity, 'id' | 'name' | 'kind' | 'status'>;
 
 export interface TrackerOptions {
   pathLossExponent: number;
   alpha: number;
-  solve?: (anchors: Anchor[]) => Estimate;
+  rssiAlpha: number;
+  solve: (anchors: Anchor[]) => Estimate;
 }
 
 export class Tracker {
   private readonly tracks = new Map<string, Track>();
-  private readonly solve: (anchors: Anchor[]) => Estimate;
 
-  constructor(private readonly options: TrackerOptions) {
-    this.solve = options.solve ?? trilaterate;
-  }
+  constructor(private readonly options: TrackerOptions) {}
 
   get size(): number {
     return this.tracks.size;
@@ -57,8 +57,15 @@ export class Tracker {
     track.kind = entity.kind;
     track.status = entity.status;
     track.lastReadingTs = Math.max(track.lastReadingTs, signal.ts);
-    const distance = rssiToDistance(signal.rssi, signal.txPower, this.options.pathLossExponent);
+    const previous = track.readings.get(signal.receiverId);
+    const beta = this.options.rssiAlpha;
+    const rssi =
+      previous && signal.ts - previous.ts <= STALE_READING_MS
+        ? beta * signal.rssi + (1 - beta) * previous.rssi
+        : signal.rssi;
+    const distance = rssiToDistance(rssi, signal.txPower, this.options.pathLossExponent);
     track.readings.set(signal.receiverId, {
+      rssi,
       distance,
       weight: 1 / (distance * distance + 1),
       ts: signal.ts,
@@ -92,7 +99,7 @@ export class Tracker {
         continue;
       }
 
-      const estimate = this.solve(anchors);
+      const estimate = this.options.solve(anchors);
       const smoothed = track.smoothed
         ? {
             x: alpha * estimate.x + (1 - alpha) * track.smoothed.x,

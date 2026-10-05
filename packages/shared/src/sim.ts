@@ -41,6 +41,7 @@ export interface WorldOptions {
   dwellMaxMs: number;
   txPower: number;
   pathLossExponent: number;
+  receiverBiasDb?: number;
   random: Random;
 }
 
@@ -119,6 +120,13 @@ export function createWorld(options: WorldOptions): World {
     });
   }
 
+  const bias = new Map<string, number>();
+  if (options.receiverBiasDb) {
+    for (const r of options.receivers) {
+      bias.set(r.id, gaussian(random, options.receiverBiasDb));
+    }
+  }
+
   const step = (tag: SimTag, dt: number, now: number): void => {
     tag.moving = false;
     if (now < tag.dwellUntil) {
@@ -169,7 +177,10 @@ export function createWorld(options: WorldOptions): World {
           }
           const d = Math.max(0.1, Math.hypot(tag.x - r.x, tag.y - r.y));
           const rssi =
-            options.txPower - 10 * options.pathLossExponent * Math.log10(d) + gaussian(random, options.noiseDb);
+            options.txPower -
+            10 * options.pathLossExponent * Math.log10(d) +
+            (bias.get(r.id) ?? 0) +
+            gaussian(random, options.noiseDb);
           out.push({
             fingerprint: tag.fingerprint,
             receiverId: r.id,

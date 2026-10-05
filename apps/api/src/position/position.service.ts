@@ -1,16 +1,21 @@
 import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { DEFAULT_PATH_LOSS_EXPONENT, Entity, PositionUpdate, RawSignal, Receiver } from '@marauder/shared';
+import { DEFAULT_PATH_LOSS_EXPONENT, Entity, FLOOR, PositionUpdate, RawSignal, Receiver } from '@marauder/shared';
+import { FloorPlanService } from '../floorplan/floorplan.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { ReceiversService } from '../receivers/receivers.service';
-import { EMA_ALPHA, Tracker } from './tracker';
+import { POSITION_ALPHA, RSSI_ALPHA, Tracker } from './tracker';
+import { Bounds, fitPosition } from './trilateration';
 
 @Injectable()
 export class PositionService implements OnModuleInit, OnModuleDestroy {
+  private bounds: Bounds = { width: FLOOR.width, height: FLOOR.height };
   private readonly tracker = new Tracker({
     pathLossExponent:
       Number(process.env.PATH_LOSS_EXPONENT ?? DEFAULT_PATH_LOSS_EXPONENT) || DEFAULT_PATH_LOSS_EXPONENT,
-    alpha: EMA_ALPHA,
+    alpha: POSITION_ALPHA,
+    rssiAlpha: RSSI_ALPHA,
+    solve: (anchors) => fitPosition(anchors, this.bounds),
   });
   private receivers = new Map<string, Receiver>();
   private flushTimer: NodeJS.Timeout | null = null;
@@ -18,15 +23,16 @@ export class PositionService implements OnModuleInit, OnModuleDestroy {
 
   constructor(
     private readonly receiversService: ReceiversService,
+    private readonly floorPlanService: FloorPlanService,
     private readonly prisma: PrismaService,
     private readonly events: EventEmitter2,
   ) {}
 
   async onModuleInit(): Promise<void> {
-    await this.refreshReceivers();
+    await this.refreshLayout();
     const flushMs = Number(process.env.POSITION_FLUSH_MS ?? 150) || 150;
     this.flushTimer = setInterval(() => void this.flush(), flushMs);
-    this.receiverTimer = setInterval(() => void this.refreshReceivers(), 30_000);
+    this.receiverTimer = setInterval(() => void this.refreshLayout(), 30_000);
   }
 
   onModuleDestroy(): void {
@@ -42,13 +48,14 @@ export class PositionService implements OnModuleInit, OnModuleDestroy {
     this.tracker.record(entity, signal);
   }
 
-  private async refreshReceivers(): Promise<void> {
-    const list = await this.receiversService.list();
+  private async refreshLayout(): Promise<void> {
+    const [list, plan] = await Promise.all([this.receiversService.list(), this.floorPlanService.get()]);
     const next = new Map<string, Receiver>();
     for (const r of list) {
       next.set(r.id, r);
     }
     this.receivers = next;
+    this.bounds = { width: plan.width, height: plan.height };
   }
 
   private async flush(): Promise<void> {
