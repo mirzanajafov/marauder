@@ -1,0 +1,12 @@
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["ALL"]
+ignore = ["D", "CPY001", "COM812", "T201", "I001", "ANN001", "ANN201", "ASYNC110"]
+
+[tool.mypy]
+strict = true
+disallow_untyped_defs = false
+disallow_untyped_calls = false
