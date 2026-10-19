@@ -33,6 +33,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm --filter @marauder/shared build
       - run: pnpm --filter @marauder/api exec prisma generate
+      - run: pnpm format:check
       - run: pnpm typecheck
       - run: pnpm lint
 

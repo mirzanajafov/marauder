@@ -34,7 +34,15 @@ export function AdminPanel({ entities, onTag, authed }: Props) {
   );
 }
 
-function TagRow({ entity, onTag, authed }: { entity: Entity; onTag: (id: string, name: string) => Promise<void>; authed: boolean }) {
+function TagRow({
+  entity,
+  onTag,
+  authed,
+}: {
+  entity: Entity;
+  onTag: (id: string, name: string) => Promise<void>;
+  authed: boolean;
+}) {
   const [name, setName] = useState('');
   const [busy, setBusy] = useState(false);
 

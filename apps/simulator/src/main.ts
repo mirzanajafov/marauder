@@ -36,13 +36,16 @@ function main(): void {
 
   client.on('connect', () => {
     console.log(`simulator connected: ${world.tags.length} tags visiting ${world.rooms.length} rooms, ${HZ} Hz`);
-    setInterval(() => {
-      const now = Date.now();
-      world.advance(dt, now);
-      for (const signal of world.signals(now)) {
-        client.publish(signalTopic(signal.receiverId), JSON.stringify(signal));
-      }
-    }, Math.round(1000 / HZ));
+    setInterval(
+      () => {
+        const now = Date.now();
+        world.advance(dt, now);
+        for (const signal of world.signals(now)) {
+          client.publish(signalTopic(signal.receiverId), JSON.stringify(signal));
+        }
+      },
+      Math.round(1000 / HZ),
+    );
   });
 
   client.on('error', (err) => console.error(err.message));

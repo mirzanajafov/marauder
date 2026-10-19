@@ -44,7 +44,9 @@ export class PositionService implements OnModuleInit, OnModuleDestroy {
     this.flushTimer = setInterval(() => void this.flush(), flushMs);
     this.layoutTimer = setInterval(() => {
       this.refreshLayout().catch((error: unknown) => {
-        this.logger.error(`could not refresh receivers and floor plan, keeping the last layout: ${errorMessage(error)}`);
+        this.logger.error(
+          `could not refresh receivers and floor plan, keeping the last layout: ${errorMessage(error)}`,
+        );
       });
     }, LAYOUT_REFRESH_MS);
   }

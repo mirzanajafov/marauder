@@ -38,7 +38,9 @@ export function App() {
   const [loginError, setLoginError] = useState(false);
 
   const reloadReceivers = (): void => {
-    fetchReceivers().then(setReceivers).catch(() => undefined);
+    fetchReceivers()
+      .then(setReceivers)
+      .catch(() => undefined);
   };
 
   useEffect(() => {
@@ -49,7 +51,9 @@ export function App() {
     }
 
     reloadReceivers();
-    fetchFloorPlan().then(setFloor).catch(() => undefined);
+    fetchFloorPlan()
+      .then(setFloor)
+      .catch(() => undefined);
     fetchEntities()
       .then((list) => setEntities(Object.fromEntries(list.map((e) => [e.id, e]))))
       .catch(() => undefined);

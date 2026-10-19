@@ -48,9 +48,7 @@ export function trilaterate(anchors: Anchor[]): Estimate {
     const r0 = 2 * (a.x - ref.x);
     const r1 = 2 * (a.y - ref.y);
     const rhs =
-      a.x * a.x - ref.x * ref.x +
-      (a.y * a.y - ref.y * ref.y) +
-      (ref.distance * ref.distance - a.distance * a.distance);
+      a.x * a.x - ref.x * ref.x + (a.y * a.y - ref.y * ref.y) + (ref.distance * ref.distance - a.distance * a.distance);
     const w = Math.min(a.weight, ref.weight);
     a11 += w * r0 * r0;
     a12 += w * r0 * r1;
@@ -148,7 +146,10 @@ export function fitPosition(anchors: Anchor[], bounds: Bounds, fitScale = true):
       h[2][2] = 1;
     }
     const damped = h.map((row, p) => row.map((value, q) => (p === q ? value * (1 + damping) : value)));
-    const step = solve3(damped, g.map((value) => -value));
+    const step = solve3(
+      damped,
+      g.map((value) => -value),
+    );
     if (!step) {
       break;
     }

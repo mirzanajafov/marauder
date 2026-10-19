@@ -63,13 +63,13 @@ change is what fixed it.
 
 Median / p95 error in metres:
 
-| | before | after |
-| --- | --- | --- |
-| 1.2 dB noise (simulator default) | 1.01 / 1.95 | 1.03 / 1.62 |
-| 3 dB | 1.88 / 4.06 | 1.30 / 2.74 |
-| 6 dB | 3.59 / 7.90 | 2.04 / 4.98 |
-| 3 dB, building at exponent 3.0, solver assumes 2.5 | 3.56 / 20.11 | 1.20 / 2.40 |
-| 3 dB, each receiver off by a fixed offset | 8.71 / 20.02 | 4.33 / 10.28 |
+|                                                    | before       | after        |
+| -------------------------------------------------- | ------------ | ------------ |
+| 1.2 dB noise (simulator default)                   | 1.01 / 1.95  | 1.03 / 1.62  |
+| 3 dB                                               | 1.88 / 4.06  | 1.30 / 2.74  |
+| 6 dB                                               | 3.59 / 7.90  | 2.04 / 4.98  |
+| 3 dB, building at exponent 3.0, solver assumes 2.5 | 3.56 / 20.11 | 1.20 / 2.40  |
+| 3 dB, each receiver off by a fixed offset          | 8.71 / 20.02 | 4.33 / 10.28 |
 
 The wrong-exponent row is exactly the error the scale term models, so I added the last row
 as a check I didn't design the fix around: each receiver reads a fixed number of dB high or

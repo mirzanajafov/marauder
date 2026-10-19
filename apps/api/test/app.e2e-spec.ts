@@ -54,10 +54,7 @@ describe('API (e2e)', () => {
   });
 
   it('rejects tagging without a token', async () => {
-    await request(app.getHttpServer())
-      .patch(`/entities/${entityId}`)
-      .send({ name: 'No Auth' })
-      .expect(401);
+    await request(app.getHttpServer()).patch(`/entities/${entityId}`).send({ name: 'No Auth' }).expect(401);
   });
 
   it('tags an entity with a token and reflects the change', async () => {
@@ -104,12 +101,22 @@ describe('API (e2e)', () => {
     expect(before.body.width).toBeGreaterThan(0);
     await request(app.getHttpServer())
       .put('/floorplan')
-      .send({ imageUrl: before.body.imageUrl, width: before.body.width, height: before.body.height, floor: before.body.floor })
+      .send({
+        imageUrl: before.body.imageUrl,
+        width: before.body.width,
+        height: before.body.height,
+        floor: before.body.floor,
+      })
       .expect(401);
     const updated = await request(app.getHttpServer())
       .put('/floorplan')
       .set('Authorization', auth())
-      .send({ imageUrl: before.body.imageUrl, width: before.body.width, height: before.body.height, floor: before.body.floor })
+      .send({
+        imageUrl: before.body.imageUrl,
+        width: before.body.width,
+        height: before.body.height,
+        floor: before.body.floor,
+      })
       .expect(200);
     expect(updated.body.height).toBe(before.body.height);
   });
