@@ -29,7 +29,7 @@ export class PositionService implements OnModuleInit, OnModuleDestroy {
   });
   private receivers = new Map<string, Receiver>();
   private flushTimer: NodeJS.Timeout | null = null;
-  private receiverTimer: NodeJS.Timeout | null = null;
+  private layoutTimer: NodeJS.Timeout | null = null;
 
   constructor(
     private readonly receiversService: ReceiversService,
@@ -42,7 +42,7 @@ export class PositionService implements OnModuleInit, OnModuleDestroy {
     await this.refreshLayout();
     const flushMs = Number(process.env.POSITION_FLUSH_MS ?? 150) || 150;
     this.flushTimer = setInterval(() => void this.flush(), flushMs);
-    this.receiverTimer = setInterval(() => {
+    this.layoutTimer = setInterval(() => {
       this.refreshLayout().catch((error: unknown) => {
         this.logger.error(`could not refresh receivers and floor plan, keeping the last layout: ${errorMessage(error)}`);
       });
@@ -53,8 +53,8 @@ export class PositionService implements OnModuleInit, OnModuleDestroy {
     if (this.flushTimer) {
       clearInterval(this.flushTimer);
     }
-    if (this.receiverTimer) {
-      clearInterval(this.receiverTimer);
+    if (this.layoutTimer) {
+      clearInterval(this.layoutTimer);
     }
   }
 

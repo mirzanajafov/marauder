@@ -16,11 +16,11 @@ function cleanRssi(px: number, py: number, x: number, y: number): number {
 describe('PositionService', () => {
   afterEach(() => {
     jest.useRealTimers();
-    jest.restoreAllMocks();
   });
 
-  it('survives a failed layout refresh and keeps solving against the last receivers', async () => {
+  it('keeps the last layout when a refresh fails and applies the next one that succeeds', async () => {
     jest.useFakeTimers();
+    delete process.env.POSITION_FLUSH_MS;
     const receiversService = {
       list: jest
         .fn()
@@ -62,7 +62,7 @@ describe('PositionService', () => {
     hearFromEveryReceiver();
     await jest.advanceTimersByTimeAsync(1_000);
     expect(events.emit).toHaveBeenCalledWith('positions.batch', {
-      positions: [expect.objectContaining({ entityId: 'e4' })],
+      positions: [expect.objectContaining({ entityId: 'e4', x: expect.closeTo(10, 0), y: expect.closeTo(5, 0) })],
     });
 
     await jest.advanceTimersByTimeAsync(LAYOUT_REFRESH_MS);
