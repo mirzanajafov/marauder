@@ -10,8 +10,8 @@ report to fixed receivers, and the backend turns that noisy stream into live dot
 moving on a floor plan.
 
 The use case is a workplace: staff and assets moving around a building in real time,
-each shown by name on the floor plan. The tracked things carry a tag on purpose (a staff
-badge or an asset tag), so this isn't about tracking phones without consent.
+each shown by name on the floor plan. The tracked things carry a tag on purpose
+(think a staff badge or an asset tag), not phones tracked without consent.
 
 ![Live tracking on the floor plan](assets/marauder-demo.gif)
 
@@ -21,8 +21,8 @@ A receiver sees a tag and publishes `{ fingerprint, receiverId, rssi, txPower, t
 over MQTT. The API resolves the fingerprint to an entity (creating an "unknown"
 one the first time), estimates a position from the RSSI readings across receivers,
 and streams batched position updates to the web UI over WebSocket. When a new tag
-appears you tag it with a name once, and after that it is recognized instantly from a
-Redis lookup.
+appears you tag it with a name once, and after that it is recognized instantly from
+a Redis lookup.
 
 Positions come from a log-distance path-loss model. Each receiver's RSSI is smoothed in
 dB, the position is fitted to those readings in log-distance space when three or more
@@ -77,8 +77,8 @@ low, like a different antenna. The new estimator is better there too, and nothin
 outside the building any more (20% did before), but the scale term barely matters (4.53 m
 without it, 4.33 with) and it's still 3 m worse than the clean case. Per-receiver
 calibration would fix that, and it only makes sense with real hardware. At the simulator's
-default noise the median didn't move: the gain there is in the tail. A walking tag is now
-about 1.1 m off and a standing one about 0.4 m.
+default noise the median didn't move, but the gain there is in the tail. A walking tag is
+now about 1.1 m off and a standing one about 0.4 m.
 
 These numbers are a floor, not a promise. The simulator draws RSSI from the same
 log-distance model the solver inverts, with Gaussian noise, no multipath and no walls in
@@ -123,7 +123,7 @@ password, which is `ADMIN_PASSWORD` in that `.env`. The API won't start without 
 ## Deploying
 
 The live demo runs from `deploy/docker-compose.prod.yml` on a small VPS, behind a
-Caddy that several of my projects share. Nothing publishes a port. The web container
+Caddy that several of my projects share. Nothing publishes a port: the web container
 joins that proxy's `edge` network. A release is `deploy/deploy.sh`: it backs up,
 fast-forwards to `origin/main`, rebuilds, runs the migrations, and waits for the API
 and the web app to answer. If they don't, it resets to the commit it started from and
@@ -160,7 +160,7 @@ for a week at half-second resolution. Those two windows take 100 and 160 ms.
 ## Real sensors
 
 The map is fed over MQTT, so any receiver that publishes `sensors/<receiverId>/signals`
-with `{ fingerprint, receiverId, rssi, txPower }` works, and the simulator is just one
+with `{ fingerprint, receiverId, rssi, txPower }` works. The simulator is just one
 source. Two reference receivers live in `hardware/`:
 
 - `hardware/esp32-receiver`: an ESP32 sketch (PlatformIO) that BLE-scans and publishes
