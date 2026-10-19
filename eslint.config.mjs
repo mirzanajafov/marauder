@@ -18,7 +18,17 @@ export default defineConfig(
     },
     rules: {
       '@typescript-eslint/no-extraneous-class': ['error', { allowWithDecorator: true }],
-      '@typescript-eslint/restrict-template-expressions': ['error', { allowNumber: true }],
+      '@typescript-eslint/restrict-template-expressions': [
+        'error',
+        {
+          allowAny: true,
+          allowBoolean: false,
+          allowNever: false,
+          allowNullish: false,
+          allowNumber: true,
+          allowRegExp: false,
+        },
+      ],
       '@typescript-eslint/no-confusing-void-expression': ['error', { ignoreArrowShorthand: true }],
       '@typescript-eslint/consistent-type-definitions': 'off',
       '@typescript-eslint/no-explicit-any': 'off',
