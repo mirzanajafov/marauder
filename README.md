@@ -108,7 +108,7 @@ fingerprint, which is the first thing I'd cache in process if the load grew.
 ## Run it
 
 ```
-cp apps/api/.env.example apps/api/.env
+cp -n apps/api/.env.example apps/api/.env
 docker compose up -d
 pnpm install
 pnpm --filter api prisma migrate deploy

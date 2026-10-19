@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { Test } from '@nestjs/testing';
 import request from 'supertest';
 import { AppModule } from '../src/app.module';
@@ -11,7 +12,6 @@ describe('API (e2e)', () => {
   let entityId: string;
   let token: string;
   const fingerprint = `e2e-${randomUUID()}`;
-  const password = process.env.ADMIN_PASSWORD;
 
   beforeAll(async () => {
     const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
@@ -23,6 +23,7 @@ describe('API (e2e)', () => {
       data: { id: randomUUID(), fingerprint, status: 'unknown' },
     });
     entityId = row.id;
+    const password = app.get(ConfigService).getOrThrow<string>('ADMIN_PASSWORD');
     const login = await request(app.getHttpServer()).post('/auth/login').send({ password }).expect(201);
     token = login.body.token;
   });
