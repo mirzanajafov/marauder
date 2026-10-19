@@ -1,13 +1,13 @@
 import { plainToInstance } from 'class-transformer';
-import { IsNotEmpty, IsString, validateSync } from 'class-validator';
+import { IsString, Matches, validateSync } from 'class-validator';
 
 class EnvironmentVariables {
   @IsString()
-  @IsNotEmpty()
+  @Matches(/\S/)
   JWT_SECRET!: string;
 
   @IsString()
-  @IsNotEmpty()
+  @Matches(/\S/)
   ADMIN_PASSWORD!: string;
 }
 
