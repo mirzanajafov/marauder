@@ -1,21 +1,30 @@
 import { UnauthorizedException } from '@nestjs/common';
+import { ConfigModule } from '@nestjs/config';
+import { JwtService } from '@nestjs/jwt';
+import { Test } from '@nestjs/testing';
+import { AuthModule } from './auth.module';
 import { AuthService } from './auth.service';
 
+async function authService(): Promise<AuthService> {
+  const moduleRef = await Test.createTestingModule({
+    imports: [ConfigModule.forRoot({ isGlobal: true, ignoreEnvFile: true }), AuthModule],
+  }).compile();
+  return moduleRef.get(AuthService);
+}
+
 describe('AuthService', () => {
-  it('issues a token for the correct password', () => {
+  beforeEach(() => {
+    process.env.JWT_SECRET = 'jwt-secret';
     process.env.ADMIN_PASSWORD = 'secret';
-    const jwt = { sign: jest.fn().mockReturnValue('signed-token') };
-    const service = new AuthService(jwt as never);
-    const result = service.login('secret');
-    expect(result.token).toBe('signed-token');
-    expect(jwt.sign).toHaveBeenCalledWith({ role: 'admin' });
   });
 
-  it('rejects a wrong password', () => {
-    process.env.ADMIN_PASSWORD = 'secret';
-    const jwt = { sign: jest.fn() };
-    const service = new AuthService(jwt as never);
+  it('issues an admin token signed with JWT_SECRET for the correct password', async () => {
+    const { token } = (await authService()).login('secret');
+    expect(new JwtService({ secret: 'jwt-secret' }).verify(token)).toMatchObject({ role: 'admin' });
+  });
+
+  it('rejects a wrong password', async () => {
+    const service = await authService();
     expect(() => service.login('nope')).toThrow(UnauthorizedException);
-    expect(jwt.sign).not.toHaveBeenCalled();
   });
 });

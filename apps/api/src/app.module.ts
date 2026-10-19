@@ -13,10 +13,11 @@ import { HistoryModule } from './history/history.module';
 import { FloorPlanModule } from './floorplan/floorplan.module';
 import { HealthController } from './health.controller';
 import { AuthModule } from './auth/auth.module';
+import { validateEnv } from './config/env.validation';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true }),
+    ConfigModule.forRoot({ isGlobal: true, validate: validateEnv }),
     AuthModule,
     EventEmitterModule.forRoot(),
     RedisModule,
