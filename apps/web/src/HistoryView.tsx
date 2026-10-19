@@ -140,7 +140,7 @@ export function HistoryView({ receivers, floor, walls }: Props) {
   if (frames.length === 0) {
     return (
       <div className="map">
-        <p className="centered muted">no history yet — run the simulator to record some movement</p>
+        <p className="centered muted">no history yet: run the simulator to record some movement</p>
       </div>
     );
   }
