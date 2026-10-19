@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/mirzanajafov/marauder/actions/workflows/ci.yml/badge.svg)](https://github.com/mirzanajafov/marauder/actions/workflows/ci.yml)
 
-**Live demo:** [marauder.najafov.dev](https://marauder.najafov.dev) — the map is open to watch; naming people needs the admin password.
+**Live demo:** [marauder.najafov.dev](https://marauder.najafov.dev). Anyone can watch the map, but naming people needs the admin password.
 
 Real-time indoor positioning for opt-in tags. I built it to see how far you can
 push RSSI-based tracking with a clean streaming pipeline: fixed BLE/Wi-Fi tags
@@ -10,8 +10,8 @@ report to fixed receivers, and the backend turns that noisy stream into live dot
 moving on a floor plan.
 
 The use case is a workplace: staff and assets moving around a building in real time,
-each shown by name on the floor plan. The tracked things carry a tag on purpose —
-think a staff badge or an asset tag — not phones tracked without consent.
+each shown by name on the floor plan. The tracked things carry a tag on purpose (a staff
+badge or an asset tag), so this isn't about tracking phones without consent.
 
 ![Live tracking on the floor plan](assets/marauder-demo.gif)
 
@@ -21,7 +21,7 @@ A receiver sees a tag and publishes `{ fingerprint, receiverId, rssi, txPower, t
 over MQTT. The API resolves the fingerprint to an entity (creating an "unknown"
 one the first time), estimates a position from the RSSI readings across receivers,
 and streams batched position updates to the web UI over WebSocket. When a new tag
-appears you tag it with a name once; after that it is recognized instantly from a
+appears you tag it with a name once, and after that it is recognized instantly from a
 Redis lookup.
 
 Positions come from a log-distance path-loss model. Each receiver's RSSI is smoothed in
@@ -52,7 +52,7 @@ So I changed three things, and kept each one only because the benchmark agreed:
   circles around one reference receiver, which amplified that receiver's noise. The
   answer is also clamped to the floor plan now.
 - **Smooth each receiver's RSSI before solving** (EMA 0.2), not only the answer. Averaging
-  in dB averages the noise where it is linear; averaging positions after a nonlinear
+  in dB averages the noise where it is linear, but averaging positions after a nonlinear
   solver doesn't. The position average went from 0.18 to 0.3 because its input is calmer.
 - **Let the fit stretch the distances.** With four or more receivers it also fits one
   scale on the log-distances, which is what a wrong path-loss exponent does to them.
@@ -77,7 +77,7 @@ low, like a different antenna. The new estimator is better there too, and nothin
 outside the building any more (20% did before), but the scale term barely matters (4.53 m
 without it, 4.33 with) and it's still 3 m worse than the clean case. Per-receiver
 calibration would fix that, and it only makes sense with real hardware. At the simulator's
-default noise the median didn't move; the gain there is in the tail. A walking tag is now
+default noise the median didn't move: the gain there is in the tail. A walking tag is now
 about 1.1 m off and a standing one about 0.4 m.
 
 These numbers are a floor, not a promise. The simulator draws RSSI from the same
@@ -123,7 +123,7 @@ password, which is `ADMIN_PASSWORD` in that `.env`. The API won't start without 
 ## Deploying
 
 The live demo runs from `deploy/docker-compose.prod.yml` on a small VPS, behind a
-Caddy that several of my projects share. Nothing publishes a port; the web container
+Caddy that several of my projects share. Nothing publishes a port. The web container
 joins that proxy's `edge` network. A release is `deploy/deploy.sh`: it backs up,
 fast-forwards to `origin/main`, rebuilds, runs the migrations, and waits for the API
 and the web app to answer. If they don't, it resets to the commit it started from and
@@ -152,24 +152,24 @@ for a week at half-second resolution. Those two windows take 100 and 160 ms.
 
 ## Layout
 
-- `apps/api` — NestJS backend
-- `apps/simulator` — MQTT traffic generator
-- `apps/web` — map + admin UI
-- `packages/shared` — shared types
+- `apps/api`: NestJS backend
+- `apps/simulator`: MQTT traffic generator
+- `apps/web`: map + admin UI
+- `packages/shared`: shared types
 
 ## Real sensors
 
 The map is fed over MQTT, so any receiver that publishes `sensors/<receiverId>/signals`
-with `{ fingerprint, receiverId, rssi, txPower }` works — the simulator is just one
+with `{ fingerprint, receiverId, rssi, txPower }` works, and the simulator is just one
 source. Two reference receivers live in `hardware/`:
 
-- `hardware/esp32-receiver` — an ESP32 sketch (PlatformIO) that BLE-scans and publishes
+- `hardware/esp32-receiver`: an ESP32 sketch (PlatformIO) that BLE-scans and publishes
   RSSI. Set the wifi, MQTT host and `RECEIVER_ID` at the top, flash three boards placed
   apart, and register them in the config tab.
-- `hardware/ble-scanner` — a cross-platform Python scanner for a laptop or Raspberry Pi.
+- `hardware/ble-scanner`: a cross-platform Python scanner for a laptop or Raspberry Pi.
   Install with `pip install -r requirements.txt`, then run
   `MQTT_HOST=... RECEIVER_ID=R1 python scanner.py`.
 
-Use fixed-id BLE beacons (or a phone in beacon mode) as tags; each shows up as unknown
+Use fixed-id BLE beacons (or a phone in beacon mode) as tags. Each shows up as unknown
 until you name it. Set each receiver's position in the config tab and tune
 `PATH_LOSS_EXPONENT` and txPower for your space.
