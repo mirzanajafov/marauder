@@ -8,6 +8,11 @@ import { POSITION_ALPHA, RSSI_ALPHA, Tracker } from './tracker';
 import { Bounds, fitPosition } from './trilateration';
 
 export const WRITE_FAILURE_LOG_MS = 30_000;
+export const LAYOUT_REFRESH_MS = 30_000;
+
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
 
 @Injectable()
 export class PositionService implements OnModuleInit, OnModuleDestroy {
@@ -23,8 +28,8 @@ export class PositionService implements OnModuleInit, OnModuleDestroy {
     solve: (anchors) => fitPosition(anchors, this.bounds),
   });
   private receivers = new Map<string, Receiver>();
-  private flushTimer: NodeJS.Timeout | null = null;
-  private receiverTimer: NodeJS.Timeout | null = null;
+  private flushTimer?: NodeJS.Timeout;
+  private layoutTimer?: NodeJS.Timeout;
 
   constructor(
     private readonly receiversService: ReceiversService,
@@ -37,16 +42,16 @@ export class PositionService implements OnModuleInit, OnModuleDestroy {
     await this.refreshLayout();
     const flushMs = Number(process.env.POSITION_FLUSH_MS ?? 150) || 150;
     this.flushTimer = setInterval(() => void this.flush(), flushMs);
-    this.receiverTimer = setInterval(() => void this.refreshLayout(), 30_000);
+    this.layoutTimer = setInterval(() => {
+      this.refreshLayout().catch((error: unknown) => {
+        this.logger.error(`could not refresh receivers and floor plan, keeping the last layout: ${errorMessage(error)}`);
+      });
+    }, LAYOUT_REFRESH_MS);
   }
 
   onModuleDestroy(): void {
-    if (this.flushTimer) {
-      clearInterval(this.flushTimer);
-    }
-    if (this.receiverTimer) {
-      clearInterval(this.receiverTimer);
-    }
+    clearInterval(this.flushTimer);
+    clearInterval(this.layoutTimer);
   }
 
   record(entity: Entity, signal: RawSignal): void {
@@ -91,9 +96,8 @@ export class PositionService implements OnModuleInit, OnModuleDestroy {
       this.failedWrites += 1;
       if (now - this.lastFailureLog >= WRITE_FAILURE_LOG_MS) {
         this.lastFailureLog = now;
-        const reason = error instanceof Error ? error.message : String(error);
         this.logger.error(
-          `could not write ${updates.length} positions to history (${this.failedWrites} failed batches so far): ${reason}`,
+          `could not write ${updates.length} positions to history (${this.failedWrites} failed batches so far): ${errorMessage(error)}`,
         );
       }
     }

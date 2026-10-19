@@ -5,6 +5,7 @@ module.exports = {
   testMatch: ['<rootDir>/test/**/*.e2e-spec.ts'],
   moduleFileExtensions: ['ts', 'js', 'json'],
   clearMocks: true,
+  restoreMocks: true,
   forceExit: true,
   testTimeout: 30000,
 };

@@ -6,7 +6,7 @@ import {
   RawSignal,
 } from '@marauder/shared';
 import { Logger } from '@nestjs/common';
-import { PositionService } from './position.service';
+import { LAYOUT_REFRESH_MS, PositionService } from './position.service';
 
 function cleanRssi(px: number, py: number, x: number, y: number): number {
   const d = Math.max(0.1, Math.hypot(px - x, py - y));
@@ -14,6 +14,72 @@ function cleanRssi(px: number, py: number, x: number, y: number): number {
 }
 
 describe('PositionService', () => {
+  beforeEach(() => {
+    process.env.POSITION_FLUSH_MS = '150';
+    process.env.PATH_LOSS_EXPONENT = String(DEFAULT_PATH_LOSS_EXPONENT);
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  it('keeps the last layout when a refresh fails and applies the next one that succeeds', async () => {
+    jest.useFakeTimers();
+    const receiversService = {
+      list: jest
+        .fn()
+        .mockResolvedValueOnce(DEFAULT_RECEIVERS)
+        .mockRejectedValueOnce(new Error('connection refused'))
+        .mockResolvedValue([]),
+    };
+    const floorPlan = { get: jest.fn().mockResolvedValue({ imageUrl: null, width: 40, height: 25, floor: 0 }) };
+    const prisma = { position: { createMany: jest.fn().mockResolvedValue({ count: 1 }) } };
+    const events = { emit: jest.fn() };
+    const error = jest.spyOn(Logger.prototype, 'error').mockImplementation(() => undefined);
+    const service = new PositionService(receiversService as any, floorPlan as any, prisma as any, events as any);
+    const entity: Entity = {
+      id: 'e4',
+      fingerprint: 'tag-04',
+      name: 'Lin',
+      kind: 'person',
+      status: 'tagged',
+      firstSeen: 0,
+      lastSeen: 0,
+    };
+    const hearFromEveryReceiver = (): void => {
+      for (const r of DEFAULT_RECEIVERS) {
+        service.record(entity, {
+          fingerprint: 'tag-04',
+          receiverId: r.id,
+          rssi: cleanRssi(10, 5, r.x, r.y),
+          txPower: DEFAULT_TX_POWER,
+          ts: Date.now(),
+        });
+      }
+    };
+    await service.onModuleInit();
+
+    await jest.advanceTimersByTimeAsync(LAYOUT_REFRESH_MS);
+    expect(error).toHaveBeenCalledTimes(1);
+    expect(error.mock.calls[0][0]).toContain('connection refused');
+
+    hearFromEveryReceiver();
+    await jest.advanceTimersByTimeAsync(1_000);
+    expect(events.emit).toHaveBeenCalledWith('positions.batch', {
+      positions: [expect.objectContaining({ entityId: 'e4', x: expect.closeTo(10, 0), y: expect.closeTo(5, 0) })],
+    });
+
+    await jest.advanceTimersByTimeAsync(LAYOUT_REFRESH_MS);
+    events.emit.mockClear();
+    hearFromEveryReceiver();
+    await jest.advanceTimersByTimeAsync(1_000);
+    expect(receiversService.list).toHaveBeenCalledTimes(3);
+    expect(events.emit).not.toHaveBeenCalled();
+    expect(error).toHaveBeenCalledTimes(1);
+
+    service.onModuleDestroy();
+  });
+
   it('emits a batched position near the true location', async () => {
     const receiversService = { list: jest.fn().mockResolvedValue(DEFAULT_RECEIVERS) };
     const floorPlan = { get: jest.fn().mockResolvedValue({ imageUrl: null, width: 40, height: 25, floor: 0 }) };
@@ -126,6 +192,5 @@ describe('PositionService', () => {
     expect(prisma.position.createMany).toHaveBeenCalledTimes(3);
     expect(error).toHaveBeenCalledTimes(1);
     expect(error.mock.calls[0][0]).toContain('connection refused');
-    error.mockRestore();
   });
 });
