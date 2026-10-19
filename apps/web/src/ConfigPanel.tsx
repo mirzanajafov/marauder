@@ -85,11 +85,29 @@ export function ConfigPanel({ receivers, floor, authed, walls, onReceiversChange
           <p className="muted">click the map to set position</p>
           <div className="grid2">
             <input value={draft.id} onChange={(e) => setDraft({ ...draft, id: e.target.value })} placeholder="id" />
-            <input value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} placeholder="name" />
-            <input value={draft.x} onChange={(e) => setDraft({ ...draft, x: e.target.value })} placeholder="x" inputMode="decimal" />
-            <input value={draft.y} onChange={(e) => setDraft({ ...draft, y: e.target.value })} placeholder="y" inputMode="decimal" />
+            <input
+              value={draft.name}
+              onChange={(e) => setDraft({ ...draft, name: e.target.value })}
+              placeholder="name"
+            />
+            <input
+              value={draft.x}
+              onChange={(e) => setDraft({ ...draft, x: e.target.value })}
+              placeholder="x"
+              inputMode="decimal"
+            />
+            <input
+              value={draft.y}
+              onChange={(e) => setDraft({ ...draft, y: e.target.value })}
+              placeholder="y"
+              inputMode="decimal"
+            />
           </div>
-          <button className="primary" onClick={() => void addReceiver()} disabled={!authed || !draft.id.trim() || !draft.name.trim()}>
+          <button
+            className="primary"
+            onClick={() => void addReceiver()}
+            disabled={!authed || !draft.id.trim() || !draft.name.trim()}
+          >
             add
           </button>
         </section>

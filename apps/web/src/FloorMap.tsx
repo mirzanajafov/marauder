@@ -40,7 +40,17 @@ function hashId(id: string): number {
   return h;
 }
 
-export function FloorMap({ width, height, imageUrl, walls, receivers, entities, positions, trails, onMapClick }: Props) {
+export function FloorMap({
+  width,
+  height,
+  imageUrl,
+  walls,
+  receivers,
+  entities,
+  positions,
+  trails,
+  onMapClick,
+}: Props) {
   const posList = Object.values(positions);
 
   const handleClick = (e: MouseEvent<SVGSVGElement>): void => {
@@ -98,7 +108,7 @@ export function FloorMap({ width, height, imageUrl, walls, receivers, entities, 
           const color = PALETTE[hashId(p.entityId) % PALETTE.length];
           const label = entity?.name ?? p.name ?? 'Unknown';
           const trail = trails?.[p.entityId] ?? [{ x: p.x, y: p.y }];
-          const dy = (((hashId(p.entityId) % 5) - 2) * 1.9);
+          const dy = ((hashId(p.entityId) % 5) - 2) * 1.9;
           const w = label.length * 0.52 + 0.7;
           const lx = p.x + 0.7;
           const ly = p.y - 1.9 + dy;
@@ -106,7 +116,17 @@ export function FloorMap({ width, height, imageUrl, walls, receivers, entities, 
             <g key={p.entityId}>
               {footprints(p.entityId, trail, color)}
               <line x1={p.x} y1={p.y} x2={lx + 0.2} y2={ly + 0.65} stroke={color} strokeWidth={0.05} opacity={0.5} />
-              <rect x={lx} y={ly} width={w} height={1.3} rx={0.35} fill="#0d1117" opacity={0.85} stroke={color} strokeWidth={0.07} />
+              <rect
+                x={lx}
+                y={ly}
+                width={w}
+                height={1.3}
+                rx={0.35}
+                fill="#0d1117"
+                opacity={0.85}
+                stroke={color}
+                strokeWidth={0.07}
+              />
               <text x={lx + 0.35} y={ly + 0.9} className="entity-label">
                 {label}
               </text>

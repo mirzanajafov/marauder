@@ -1,10 +1,4 @@
-import {
-  DEFAULT_PATH_LOSS_EXPONENT,
-  DEFAULT_RECEIVERS,
-  DEFAULT_TX_POWER,
-  Entity,
-  RawSignal,
-} from '@marauder/shared';
+import { DEFAULT_PATH_LOSS_EXPONENT, DEFAULT_RECEIVERS, DEFAULT_TX_POWER, Entity, RawSignal } from '@marauder/shared';
 import { Logger } from '@nestjs/common';
 import { LAYOUT_REFRESH_MS, PositionService } from './position.service';
 

@@ -1,12 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import {
-  EntityStatus,
-  FloorPlan,
-  HistoryPoint,
-  PositionUpdate,
-  Receiver,
-  Wall,
-} from '@marauder/shared';
+import { EntityStatus, FloorPlan, HistoryPoint, PositionUpdate, Receiver, Wall } from '@marauder/shared';
 import { fetchHistory, fetchHistorySummary } from './api';
 import { FloorMap } from './FloorMap';
 

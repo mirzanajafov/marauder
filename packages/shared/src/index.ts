@@ -199,10 +199,18 @@ function buildScene(): FloorScene {
   for (const [a, b] of segmentsWithGaps(1, 39, [entrance])) {
     walls.push({ x1: a, y1: 24, x2: b, y2: 24 });
   }
-  for (const [a, b] of segmentsWithGaps(1, 39, topDoors.map((x) => [x - doorHalf, x + doorHalf]))) {
+  for (const [a, b] of segmentsWithGaps(
+    1,
+    39,
+    topDoors.map((x) => [x - doorHalf, x + doorHalf]),
+  )) {
     walls.push({ x1: a, y1: yTop, x2: b, y2: yTop });
   }
-  for (const [a, b] of segmentsWithGaps(1, 39, botDoors.map((x) => [x - doorHalf, x + doorHalf]))) {
+  for (const [a, b] of segmentsWithGaps(
+    1,
+    39,
+    botDoors.map((x) => [x - doorHalf, x + doorHalf]),
+  )) {
     walls.push({ x1: a, y1: yBot, x2: b, y2: yBot });
   }
   for (const x of topSplits) {
