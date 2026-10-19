@@ -28,8 +28,8 @@ export class PositionService implements OnModuleInit, OnModuleDestroy {
     solve: (anchors) => fitPosition(anchors, this.bounds),
   });
   private receivers = new Map<string, Receiver>();
-  private flushTimer: NodeJS.Timeout | null = null;
-  private layoutTimer: NodeJS.Timeout | null = null;
+  private flushTimer?: NodeJS.Timeout;
+  private layoutTimer?: NodeJS.Timeout;
 
   constructor(
     private readonly receiversService: ReceiversService,
@@ -50,12 +50,8 @@ export class PositionService implements OnModuleInit, OnModuleDestroy {
   }
 
   onModuleDestroy(): void {
-    if (this.flushTimer) {
-      clearInterval(this.flushTimer);
-    }
-    if (this.layoutTimer) {
-      clearInterval(this.layoutTimer);
-    }
+    clearInterval(this.flushTimer);
+    clearInterval(this.layoutTimer);
   }
 
   record(entity: Entity, signal: RawSignal): void {

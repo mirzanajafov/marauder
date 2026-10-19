@@ -14,13 +14,17 @@ function cleanRssi(px: number, py: number, x: number, y: number): number {
 }
 
 describe('PositionService', () => {
+  beforeEach(() => {
+    process.env.POSITION_FLUSH_MS = '150';
+    process.env.PATH_LOSS_EXPONENT = String(DEFAULT_PATH_LOSS_EXPONENT);
+  });
+
   afterEach(() => {
     jest.useRealTimers();
   });
 
   it('keeps the last layout when a refresh fails and applies the next one that succeeds', async () => {
     jest.useFakeTimers();
-    delete process.env.POSITION_FLUSH_MS;
     const receiversService = {
       list: jest
         .fn()
