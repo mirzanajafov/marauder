@@ -11,7 +11,7 @@ describe('API (e2e)', () => {
   let entityId: string;
   let token: string;
   const fingerprint = `e2e-${randomUUID()}`;
-  const password = process.env.ADMIN_PASSWORD ?? 'marauder';
+  const password = process.env.ADMIN_PASSWORD;
 
   beforeAll(async () => {
     const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();

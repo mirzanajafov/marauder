@@ -108,6 +108,7 @@ fingerprint, which is the first thing I'd cache in process if the load grew.
 ## Run it
 
 ```
+cp apps/api/.env.example apps/api/.env
 docker compose up -d
 pnpm install
 pnpm --filter api prisma migrate deploy
@@ -116,7 +117,8 @@ pnpm dev
 
 Then open the web app, watch tags appear as "unknown", and name one. Restart the
 simulator and it comes back already named. Tagging and the config tab need the admin
-password (`ADMIN_PASSWORD`, see `.env.example`); log in from the top bar.
+password (`ADMIN_PASSWORD`), and the API won't start without it or `JWT_SECRET`. Log
+in from the top bar.
 
 ## Deploying
 
