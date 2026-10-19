@@ -16,7 +16,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.cjs.json && tsc -p tsconfig.esm.json && node scripts/esm-pkg.cjs",
     "dev": "tsc -p tsconfig.cjs.json --watch --preserveWatchOutput",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit -p tsconfig.cjs.json"
   },
   "devDependencies": {
     "typescript": "^5.6.3"

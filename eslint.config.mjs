@@ -5,7 +5,7 @@ import globals from 'globals';
 import tseslint from 'typescript-eslint';
 
 export default defineConfig(
-  globalIgnores(['**/dist/']),
+  globalIgnores(['**/dist/', '**/coverage/']),
   js.configs.recommended,
   tseslint.configs.strictTypeChecked,
   tseslint.configs.stylisticTypeChecked,
@@ -54,11 +54,11 @@ export default defineConfig(
   {
     files: ['**/*.{js,mjs,cjs}'],
     extends: [tseslint.configs.disableTypeChecked],
-    languageOptions: { globals: globals.node },
+    languageOptions: { globals: globals.nodeBuiltin },
   },
   {
     files: ['**/*.cjs'],
-    languageOptions: { sourceType: 'commonjs' },
+    languageOptions: { sourceType: 'commonjs', globals: globals.node },
     rules: { '@typescript-eslint/no-require-imports': 'off' },
   },
 );
