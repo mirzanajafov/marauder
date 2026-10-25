@@ -9,8 +9,7 @@
     "sourceMap": true,
     "outDir": "./dist",
     "baseUrl": "./",
-    "incremental": true,
-    "noUncheckedIndexedAccess": true
+    "incremental": true
   },
   "include": ["src", "test", "bench"],
   "exclude": ["node_modules", "dist"]
