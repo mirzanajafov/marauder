@@ -163,6 +163,35 @@ describe('API (e2e)', () => {
     await request(app.getHttpServer()).delete(`/receivers/${id}`).set('Authorization', auth()).expect(404);
   });
 
+  it('refuses a coordinate or floor that is not a usable number instead of coercing it', async () => {
+    const receiver = newReceiver();
+    try {
+      for (const invalid of [{ floor: null }, { floor: true }, { floor: 3_000_000_000 }, { x: '' }, { x: '5' }]) {
+        await request(app.getHttpServer())
+          .post('/receivers')
+          .set('Authorization', auth())
+          .send({ ...receiver, ...invalid })
+          .expect(400);
+      }
+      for (const invalid of [{ x: null }, { x: false }, { y: ' ' }]) {
+        await request(app.getHttpServer())
+          .patch(`/receivers/${receiver.id}`)
+          .set('Authorization', auth())
+          .send(invalid)
+          .expect(400);
+      }
+      for (const floor of [null, 3_000_000_000]) {
+        await request(app.getHttpServer())
+          .put('/floorplan')
+          .set('Authorization', auth())
+          .send({ width: 30, height: 20, floor })
+          .expect(400);
+      }
+    } finally {
+      await prisma.receiver.deleteMany({ where: { id: receiver.id } });
+    }
+  });
+
   it('answers 404 for an entity that does not exist', async () => {
     await request(app.getHttpServer()).get(`/entities/${randomUUID()}`).expect(404).expect({
       message: 'entity not found',
