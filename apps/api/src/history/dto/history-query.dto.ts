@@ -1,6 +1,7 @@
 import { applyDecorators } from '@nestjs/common';
 import { Transform, Type } from 'class-transformer';
 import { IsDate, IsInt, IsOptional, Max, Min, isISO8601, isRFC3339 } from 'class-validator';
+import { MAX_HISTORY_BUCKET_MS, MIN_HISTORY_BUCKET_MS } from '@marauder/shared';
 
 function isTimestamp(value: unknown): value is string {
   return typeof value === 'string' && isRFC3339(value) && isISO8601(value, { strict: true });
@@ -24,7 +25,7 @@ export class HistoryQueryDto {
 
   @Type(() => Number)
   @IsInt()
-  @Min(100)
-  @Max(10_000)
+  @Min(MIN_HISTORY_BUCKET_MS)
+  @Max(MAX_HISTORY_BUCKET_MS)
   bucketMs = 500;
 }
