@@ -6,7 +6,7 @@
     "node": "^20.19.0 || ^22.13.0 || >=24"
   },
   "scripts": {
-    "dev": "pnpm --filter @marauder/shared build && pnpm -r --parallel dev",
+    "dev": "pnpm --filter \"./packages/*\" build && pnpm -r --parallel dev",
     "build": "pnpm -r build",
     "test": "pnpm -r test",
     "typecheck": "pnpm -r typecheck",

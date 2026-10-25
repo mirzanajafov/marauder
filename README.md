@@ -157,6 +157,7 @@ for a week at half-second resolution. Those two windows take 100 and 160 ms.
 - `apps/simulator`: MQTT traffic generator
 - `apps/web`: map + admin UI
 - `packages/shared`: shared types
+- `packages/env`: config validation for the API and the simulator
 
 ## Real sensors
 

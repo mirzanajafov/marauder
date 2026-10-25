@@ -16,7 +16,7 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm --filter @marauder/shared build
+      - run: pnpm --filter "./packages/*" build
       - run: pnpm --filter @marauder/api exec prisma generate
       - run: pnpm --filter @marauder/api test
       - run: pnpm build
@@ -32,7 +32,7 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm format:check
-      - run: pnpm --filter @marauder/shared build
+      - run: pnpm --filter "./packages/*" build
       - run: pnpm --filter @marauder/api exec prisma generate
       - run: pnpm typecheck
       - run: pnpm lint
@@ -92,7 +92,7 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm --filter @marauder/shared build
+      - run: pnpm --filter "./packages/*" build
       - run: pnpm --filter @marauder/api exec prisma generate
       - run: pnpm --filter @marauder/api exec prisma migrate deploy
       - run: pnpm --filter @marauder/api prisma:seed

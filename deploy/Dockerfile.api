@@ -4,7 +4,7 @@ RUN corepack enable
 WORKDIR /repo
 COPY . .
 RUN pnpm install --frozen-lockfile
-RUN pnpm --filter @marauder/shared build
+RUN pnpm --filter "./packages/*" build
 RUN pnpm --filter @marauder/api exec prisma generate
 RUN pnpm --filter @marauder/api build
 WORKDIR /repo/apps/api
