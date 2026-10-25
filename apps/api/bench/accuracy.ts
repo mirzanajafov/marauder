@@ -1,10 +1,14 @@
 import { writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { Run, measure, scenarios, variants } from '../src/position/accuracy';
+import { Run, measure, scenarios, variants, worldFor } from '../src/position/accuracy';
 
-const run: Run = { seed: 7, minutes: 30, tagCount: 6 };
+const run: Run = { seed: 7, minutes: 30 };
 const started = Date.now();
-const results = scenarios.map((scenario) => ({ scenario: scenario.name, variants: measure(scenario, variants, run) }));
+const results = scenarios.map((scenario) => ({
+  scenario: scenario.name,
+  world: worldFor(scenario),
+  variants: measure(scenario, variants, run),
+}));
 
 for (const result of results) {
   console.log(`\n${result.scenario}`);

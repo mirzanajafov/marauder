@@ -18,7 +18,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm --filter "./packages/*" build
       - run: pnpm --filter @marauder/api exec prisma generate
-      - run: pnpm --filter @marauder/api test
+      - run: pnpm test
       - run: pnpm build
 
   lint:

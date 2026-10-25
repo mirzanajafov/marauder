@@ -110,6 +110,7 @@ resolve its fingerprint, which is the first thing I'd cache in process if the lo
 
 ```
 cp apps/api/.env.example apps/api/.env
+cp apps/simulator/.env.example apps/simulator/.env
 docker compose up -d
 pnpm install
 pnpm --filter api prisma migrate deploy
@@ -120,7 +121,9 @@ Then open the web app, watch tags appear as "unknown", and name one. Restart the
 simulator and it comes back already named. Tagging and the config tab need the admin
 password, which is `ADMIN_PASSWORD` in that `.env`. Log in from the top bar. The API checks
 its whole config when it starts and won't run with a key missing or malformed (it names
-every one that is), so the copied `.env` is not optional.
+every one that is), so the copied `.env` is not optional. The simulator checks its own
+`.env` the same way, and that is where its knobs live (tag count, noise, dropouts, walking
+speed).
 
 ## Deploying
 
