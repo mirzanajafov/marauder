@@ -15,6 +15,7 @@ describe('validateEnv', () => {
       ...required,
       API_PORT: 3001,
       API_PREFIX: '',
+      TRUST_PROXY_HOPS: 0,
       PATH_LOSS_EXPONENT: 2.5,
       POSITION_FLUSH_MS: 150,
     });
@@ -35,12 +36,21 @@ describe('validateEnv', () => {
 
   it('reads numbers from their string form', () => {
     expect(
-      validateEnv({ ...required, API_PORT: '8080', PATH_LOSS_EXPONENT: '3.1', POSITION_FLUSH_MS: '200' }),
-    ).toMatchObject({ API_PORT: 8080, PATH_LOSS_EXPONENT: 3.1, POSITION_FLUSH_MS: 200 });
+      validateEnv({
+        ...required,
+        API_PORT: '8080',
+        TRUST_PROXY_HOPS: '2',
+        PATH_LOSS_EXPONENT: '3.1',
+        POSITION_FLUSH_MS: '200',
+      }),
+    ).toMatchObject({ API_PORT: 8080, TRUST_PROXY_HOPS: 2, PATH_LOSS_EXPONENT: 3.1, POSITION_FLUSH_MS: 200 });
   });
 
   it('rejects a tuning value that is not a usable number instead of falling back', () => {
     expect(() => validateEnv({ ...required, API_PORT: 'http' })).toThrow('API_PORT');
+    for (const hops of ['-1', '2.5', '11', 'true']) {
+      expect(() => validateEnv({ ...required, TRUST_PROXY_HOPS: hops })).toThrow('TRUST_PROXY_HOPS');
+    }
     expect(() => validateEnv({ ...required, PATH_LOSS_EXPONENT: '0' })).toThrow('PATH_LOSS_EXPONENT');
     expect(() => validateEnv({ ...required, PATH_LOSS_EXPONENT: 'Infinity' })).toThrow('PATH_LOSS_EXPONENT');
     expect(() => validateEnv({ ...required, POSITION_FLUSH_MS: '3000000000' })).toThrow('POSITION_FLUSH_MS');

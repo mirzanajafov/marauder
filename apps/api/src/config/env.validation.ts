@@ -42,6 +42,12 @@ export class EnvironmentVariables {
   API_PREFIX = '';
 
   @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  @Max(10)
+  TRUST_PROXY_HOPS = 0;
+
+  @Type(() => Number)
   @Min(1)
   @Max(10)
   PATH_LOSS_EXPONENT = DEFAULT_PATH_LOSS_EXPONENT;

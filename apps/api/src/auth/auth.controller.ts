@@ -1,4 +1,5 @@
 import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
+import { ThrottlerGuard } from '@nestjs/throttler';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { AdminGuard } from './admin.guard';
@@ -8,6 +9,7 @@ export class AuthController {
   constructor(private readonly auth: AuthService) {}
 
   @Post('login')
+  @UseGuards(ThrottlerGuard)
   login(@Body() body: LoginDto): { token: string } {
     return this.auth.login(body.password);
   }
