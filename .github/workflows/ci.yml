@@ -95,5 +95,5 @@ jobs:
       - run: pnpm --filter "./packages/*" build
       - run: pnpm --filter @marauder/api exec prisma generate
       - run: pnpm --filter @marauder/api exec prisma migrate deploy
-      - run: pnpm --filter @marauder/api prisma:seed
       - run: pnpm --filter @marauder/api test:e2e
+      - run: pnpm --filter @marauder/api prisma:seed
