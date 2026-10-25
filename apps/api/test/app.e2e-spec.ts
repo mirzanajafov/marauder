@@ -57,8 +57,18 @@ describe('API against Postgres and Redis', () => {
   });
 
   describe('health and CORS', () => {
-    it('reports health', async () => {
-      await request(server).get('/health').expect(200).expect({ status: 'ok' });
+    it('reports healthy once the database, Redis and the broker are all connected', async () => {
+      let status = 0;
+      for (let attempt = 0; attempt < 50 && status !== 200; attempt++) {
+        status = (await request(server).get('/health')).status;
+        if (status !== 200) {
+          await new Promise((resolve) => setTimeout(resolve, 100));
+        }
+      }
+      await request(server)
+        .get('/health')
+        .expect(200)
+        .expect({ status: 'ok', checks: { database: true, redis: true, mqtt: true } });
     });
 
     it('allows the web origin and no other', async () => {
