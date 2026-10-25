@@ -4,6 +4,7 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Entity as EntityRow, Prisma } from '@prisma/client';
 import { Entity } from '@marauder/shared';
 import { errorMessage } from '../common/error-message';
+import { ThrottledLog } from '../common/throttled-log';
 import { PrismaService } from '../prisma/prisma.service';
 import { RedisService } from '../redis/redis.service';
 import { toEntityDto } from '../entities/entity.mapper';
@@ -13,6 +14,7 @@ const TOUCH_INTERVAL_MS = 10_000;
 @Injectable()
 export class ResolutionService {
   private readonly logger = new Logger(ResolutionService.name);
+  private readonly failedTouches = new ThrottledLog(this.logger);
   private readonly lastTouch = new Map<string, number>();
 
   constructor(
@@ -94,7 +96,10 @@ export class ResolutionService {
       .update({ where: { id }, data: { lastSeen: new Date(now) } })
       .then((row) => this.cache(toEntityDto(row)))
       .catch((error: unknown) => {
-        this.logger.warn(`could not record that entity ${id} was seen: ${errorMessage(error)}`);
+        this.failedTouches.failure(
+          (failures) =>
+            `could not update lastSeen in the database and cache (${failures} failed updates so far): ${errorMessage(error)}`,
+        );
       });
   }
 }

@@ -129,7 +129,7 @@ describe('ResolutionService', () => {
 
   it('logs when it cannot record that a known entity was seen', async () => {
     const { service, redis, prisma } = build();
-    const warn = jest.spyOn(Logger.prototype, 'warn').mockImplementation(() => undefined);
+    const logError = jest.spyOn(Logger.prototype, 'error').mockImplementation(() => undefined);
     redis.client.get.mockImplementation(async (key: string) => {
       if (key === 'fp:tag-01') return 'id1';
       if (key === 'entity:id1') return JSON.stringify({ id: 'id1', fingerprint: 'tag-01', status: 'unknown' });
@@ -140,7 +140,8 @@ describe('ResolutionService', () => {
     await service.resolve('tag-01');
     await new Promise((resolve) => setImmediate(resolve));
 
-    expect(warn).toHaveBeenCalledWith(expect.stringContaining('id1'));
-    expect(warn.mock.calls[0][0]).toContain('connection refused');
+    expect(logError).toHaveBeenCalledWith(
+      'could not update lastSeen in the database and cache (1 failed updates so far): connection refused',
+    );
   });
 });
