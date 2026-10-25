@@ -1,4 +1,4 @@
-import { SIGNAL_TOPIC_WILDCARD, signalTopic } from '@marauder/shared';
+import { SIGNAL_TOPIC_WILDCARD, signalTopic } from './topics';
 
 describe('signal topics', () => {
   it('builds the topic of a receiver so that the ingest wildcard covers it', () => {
