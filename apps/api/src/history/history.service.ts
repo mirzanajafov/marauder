@@ -2,8 +2,9 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { EntityStatus, HistoryPoint, HistorySummary } from '@marauder/shared';
 import { PrismaService } from '../prisma/prisma.service';
+import { HistoryQueryDto } from './dto/history-query.dto';
 
-interface SummaryRow {
+interface TimeBounds {
   min: Date | null;
   max: Date | null;
 }
@@ -15,39 +16,32 @@ interface PointRow {
   y: number;
   accuracy: number;
   name: string | null;
-  status: string;
+  status: EntityStatus;
 }
 
-export const MAX_BUCKETS = 2_000;
-export const DEFAULT_WINDOW_MS = 10 * 60_000;
+const MAX_BUCKETS = 2_000;
+const DEFAULT_WINDOW_MS = 10 * 60_000;
 
 @Injectable()
 export class HistoryService {
   constructor(private readonly prisma: PrismaService) {}
 
   async summary(): Promise<HistorySummary> {
-    const rows = await this.prisma.$queryRaw<SummaryRow[]>(
-      Prisma.sql`SELECT min(time) AS min, max(time) AS max FROM positions`,
-    );
-    const row = rows[0];
-    return {
-      from: row?.min ? row.min.toISOString() : null,
-      to: row?.max ? row.max.toISOString() : null,
-    };
+    const { min, max } = await this.bounds();
+    return { from: min?.toISOString() ?? null, to: max?.toISOString() ?? null };
   }
 
-  async query(from?: string, to?: string, bucketMs = 500): Promise<HistoryPoint[]> {
-    let end = to ? new Date(to) : null;
+  async query({ from, to, bucketMs }: HistoryQueryDto): Promise<HistoryPoint[]> {
+    const end = to ?? (await this.bounds()).max;
     if (!end) {
-      const bounds = await this.summary();
-      if (!bounds.to) {
-        return [];
-      }
-      end = new Date(bounds.to);
+      return [];
     }
-    const start = from ? new Date(from) : new Date(end.getTime() - DEFAULT_WINDOW_MS);
+    const start = from ?? new Date(end.getTime() - DEFAULT_WINDOW_MS);
     const span = end.getTime() - start.getTime();
     if (span < 0) {
+      if (to === undefined) {
+        return [];
+      }
       throw new BadRequestException('from must not be after to');
     }
     if (span / bucketMs > MAX_BUCKETS) {
@@ -73,12 +67,19 @@ export class HistoryService {
 
     return rows.map((r) => ({
       entityId: r.entity_id,
-      x: Number(r.x),
-      y: Number(r.y),
-      accuracy: Number(r.accuracy),
+      x: r.x,
+      y: r.y,
+      accuracy: r.accuracy,
       time: r.bucket.getTime(),
       name: r.name,
-      status: r.status as EntityStatus,
+      status: r.status,
     }));
+  }
+
+  private async bounds(): Promise<TimeBounds> {
+    const [bounds] = await this.prisma.$queryRaw<[TimeBounds]>(
+      Prisma.sql`SELECT min(time) AS min, max(time) AS max FROM positions`,
+    );
+    return bounds;
   }
 }

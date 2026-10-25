@@ -3,24 +3,20 @@ import { ConfigService } from '@nestjs/config';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Entity, FLOOR, PositionUpdate, RawSignal, Receiver } from '@marauder/shared';
 import { EnvironmentVariables } from '../config/env.validation';
+import { errorMessage } from '../common/error-message';
+import { ThrottledLog } from '../common/throttled-log';
 import { FloorPlanService } from '../floorplan/floorplan.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { ReceiversService } from '../receivers/receivers.service';
 import { POSITION_ALPHA, RSSI_ALPHA, Tracker } from './tracker';
 import { Bounds, fitPosition } from './trilateration';
 
-export const WRITE_FAILURE_LOG_MS = 30_000;
 export const LAYOUT_REFRESH_MS = 30_000;
-
-function errorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
-}
 
 @Injectable()
 export class PositionService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(PositionService.name);
-  private failedWrites = 0;
-  private lastFailureLog = Number.NEGATIVE_INFINITY;
+  private readonly failedWrites = new ThrottledLog(this.logger);
   private bounds: Bounds = { width: FLOOR.width, height: FLOOR.height };
   private readonly tracker: Tracker;
   private readonly flushMs: number;
@@ -100,13 +96,10 @@ export class PositionService implements OnModuleInit, OnModuleDestroy {
         skipDuplicates: true,
       });
     } catch (error) {
-      this.failedWrites += 1;
-      if (now - this.lastFailureLog >= WRITE_FAILURE_LOG_MS) {
-        this.lastFailureLog = now;
-        this.logger.error(
-          `could not write ${updates.length} positions to history (${this.failedWrites} failed batches so far): ${errorMessage(error)}`,
-        );
-      }
+      this.failedWrites.failure(
+        (failures) =>
+          `could not write ${updates.length} positions to history (${failures} failed batches so far): ${errorMessage(error)}`,
+      );
     }
   }
 }

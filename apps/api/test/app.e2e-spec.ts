@@ -38,6 +38,12 @@ describe('API (e2e)', () => {
   });
 
   const auth = (): string => `Bearer ${token}`;
+  const newReceiver = (): { id: string; name: string; x: number; y: number } => ({
+    id: `e2e-rx-${randomUUID().slice(0, 8)}`,
+    name: 'E2E',
+    x: 1,
+    y: 2,
+  });
 
   it('reports health', async () => {
     await request(app.getHttpServer()).get('/health').expect(200).expect({ status: 'ok' });
@@ -122,13 +128,96 @@ describe('API (e2e)', () => {
   });
 
   it('creates and deletes a receiver with a token', async () => {
-    const id = `e2e-rx-${Date.now()}`;
+    const receiver = newReceiver();
     const created = await request(app.getHttpServer())
       .post('/receivers')
       .set('Authorization', auth())
-      .send({ id, name: 'E2E', x: 1, y: 2, floor: 0 })
+      .send({ ...receiver, floor: 0 })
       .expect(201);
-    expect(created.body.id).toBe(id);
-    await request(app.getHttpServer()).delete(`/receivers/${id}`).set('Authorization', auth()).expect(204);
+    expect(created.body.id).toBe(receiver.id);
+    await request(app.getHttpServer()).delete(`/receivers/${receiver.id}`).set('Authorization', auth()).expect(204);
+  });
+
+  it('answers 409 for a receiver id that is taken', async () => {
+    const receiver = newReceiver();
+    await request(app.getHttpServer()).post('/receivers').set('Authorization', auth()).send(receiver).expect(201);
+    try {
+      const duplicate = await request(app.getHttpServer())
+        .post('/receivers')
+        .set('Authorization', auth())
+        .send(receiver)
+        .expect(409);
+      expect(duplicate.body.message).toBe('receiver with this id already exists');
+    } finally {
+      await prisma.receiver.delete({ where: { id: receiver.id } });
+    }
+  });
+
+  it('answers 404 when moving or deleting a receiver that does not exist', async () => {
+    const { id } = newReceiver();
+    await request(app.getHttpServer())
+      .patch(`/receivers/${id}`)
+      .set('Authorization', auth())
+      .send({ name: 'gone' })
+      .expect(404);
+    await request(app.getHttpServer()).delete(`/receivers/${id}`).set('Authorization', auth()).expect(404);
+  });
+
+  it('refuses a coordinate or floor that is not a usable number instead of coercing it', async () => {
+    const receiver = newReceiver();
+    try {
+      for (const invalid of [{ floor: null }, { floor: true }, { floor: 3_000_000_000 }, { x: '' }, { x: '5' }]) {
+        await request(app.getHttpServer())
+          .post('/receivers')
+          .set('Authorization', auth())
+          .send({ ...receiver, ...invalid })
+          .expect(400);
+      }
+      for (const invalid of [{ x: null }, { x: false }, { y: ' ' }]) {
+        await request(app.getHttpServer())
+          .patch(`/receivers/${receiver.id}`)
+          .set('Authorization', auth())
+          .send(invalid)
+          .expect(400);
+      }
+      for (const floor of [null, 3_000_000_000]) {
+        await request(app.getHttpServer())
+          .put('/floorplan')
+          .set('Authorization', auth())
+          .send({ width: 30, height: 20, floor })
+          .expect(400);
+      }
+    } finally {
+      await prisma.receiver.deleteMany({ where: { id: receiver.id } });
+    }
+  });
+
+  it('answers 404 for an entity that does not exist', async () => {
+    await request(app.getHttpServer()).get(`/entities/${randomUUID()}`).expect(404).expect({
+      message: 'entity not found',
+      error: 'Not Found',
+      statusCode: 404,
+    });
+  });
+
+  it('answers 404 when tagging an entity that does not exist', async () => {
+    await request(app.getHttpServer())
+      .patch(`/entities/${randomUUID()}`)
+      .set('Authorization', auth())
+      .send({ name: 'Nobody' })
+      .expect(404);
+  });
+
+  it('refuses a history window bound that is not a timestamp', async () => {
+    await request(app.getHttpServer()).get('/history?from=yesterday').expect(400);
+  });
+
+  it('returns no points for a window that starts after the newest position', async () => {
+    await prisma.position.create({ data: { entityId, x: 1, y: 1, accuracy: 1 } });
+    try {
+      await request(app.getHttpServer()).get('/history?from=2999-01-01T00:00:00Z').expect(200).expect([]);
+    } finally {
+      await prisma.position.deleteMany({ where: { entityId } });
+    }
   });
 });

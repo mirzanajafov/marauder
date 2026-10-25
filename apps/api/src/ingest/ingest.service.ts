@@ -5,10 +5,13 @@ import { RawSignal, SIGNAL_TOPIC_WILDCARD } from '@marauder/shared';
 import { ResolutionService } from '../resolution/resolution.service';
 import { PositionService } from '../position/position.service';
 import { EnvironmentVariables } from '../config/env.validation';
+import { errorMessage } from '../common/error-message';
+import { ThrottledLog } from '../common/throttled-log';
 
 @Injectable()
 export class IngestService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(IngestService.name);
+  private readonly failedSignals = new ThrottledLog(this.logger);
   private readonly mqttUrl: string;
   private client: MqttClient | null = null;
 
@@ -24,16 +27,16 @@ export class IngestService implements OnModuleInit, OnModuleDestroy {
     const client = mqtt.connect(this.mqttUrl);
     this.client = client;
     client.on('connect', () => {
-      client.subscribe(SIGNAL_TOPIC_WILDCARD, (err) => {
-        if (err) {
-          this.logger.error(`subscribe failed: ${err.message}`);
+      client.subscribe(SIGNAL_TOPIC_WILDCARD, (error) => {
+        if (error) {
+          this.logger.error(`subscribe failed: ${error.message}`);
         }
       });
     });
     client.on('message', (_topic, payload) => {
       void this.handle(payload);
     });
-    client.on('error', (err) => this.logger.error(err.message));
+    client.on('error', (error) => this.logger.error(error.message));
   }
 
   onModuleDestroy(): void {
@@ -48,8 +51,10 @@ export class IngestService implements OnModuleInit, OnModuleDestroy {
     try {
       const entity = await this.resolution.resolve(signal.fingerprint);
       this.position.record(entity, signal);
-    } catch (err) {
-      this.logger.error(`handle failed: ${(err as Error).message}`);
+    } catch (error) {
+      this.failedSignals.failure(
+        (failures) => `could not handle a signal (${failures} failed signals so far): ${errorMessage(error)}`,
+      );
     }
   }
 

@@ -1,5 +1,5 @@
-import { Type } from 'class-transformer';
-import { IsInt, IsNumber, IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
+import { IsNumber, IsString, MaxLength, MinLength } from 'class-validator';
+import { IsFloor } from '../../common/is-floor';
 
 export class CreateReceiverDto {
   @IsString()
@@ -12,16 +12,12 @@ export class CreateReceiverDto {
   @MaxLength(60)
   name!: string;
 
-  @Type(() => Number)
   @IsNumber()
   x!: number;
 
-  @Type(() => Number)
   @IsNumber()
   y!: number;
 
-  @IsOptional()
-  @Type(() => Number)
-  @IsInt()
+  @IsFloor()
   floor?: number;
 }

@@ -1,3 +1,5 @@
+import { Logger } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { Entity } from '@marauder/shared';
 import { ResolutionService } from './resolution.service';
 
@@ -24,6 +26,7 @@ function build(): { service: ResolutionService } & Mocks {
   const prisma = {
     entity: {
       findUnique: jest.fn(),
+      findUniqueOrThrow: jest.fn(),
       create: jest.fn(),
       update: jest.fn().mockResolvedValue(entityRow()),
     },
@@ -95,5 +98,50 @@ describe('ResolutionService', () => {
     expect(result).toEqual(winner);
     expect(prisma.entity.create).not.toHaveBeenCalled();
     expect(events.emit).not.toHaveBeenCalled();
+  });
+
+  it('returns the stored entity when the insert hits the unique fingerprint', async () => {
+    const { service, redis, prisma, events } = build();
+    redis.client.get.mockResolvedValue(null);
+    redis.client.set.mockResolvedValue('OK');
+    prisma.entity.create.mockRejectedValue(
+      new Prisma.PrismaClientKnownRequestError('unique', { code: 'P2002', clientVersion: Prisma.prismaVersion.client }),
+    );
+    prisma.entity.findUniqueOrThrow.mockResolvedValue(entityRow({ id: 'stored' }));
+
+    const result = await service.resolve('tag-01');
+
+    expect(result.id).toBe('stored');
+    expect(prisma.entity.findUniqueOrThrow).toHaveBeenCalledWith({ where: { fingerprint: 'tag-01' } });
+    expect(redis.client.set).toHaveBeenCalledWith('fp:tag-01', 'stored');
+    expect(redis.client.set).toHaveBeenCalledWith('entity:stored', expect.stringContaining('"id":"stored"'));
+    expect(events.emit).not.toHaveBeenCalled();
+  });
+
+  it('passes a database failure on instead of treating it as a lost race', async () => {
+    const { service, redis, prisma } = build();
+    redis.client.get.mockResolvedValue(null);
+    redis.client.set.mockResolvedValue('OK');
+    prisma.entity.create.mockRejectedValue(new Error('connection refused'));
+
+    await expect(service.resolve('tag-01')).rejects.toThrow('connection refused');
+  });
+
+  it('logs when it cannot record that a known entity was seen', async () => {
+    const { service, redis, prisma } = build();
+    const logError = jest.spyOn(Logger.prototype, 'error').mockImplementation(() => undefined);
+    redis.client.get.mockImplementation(async (key: string) => {
+      if (key === 'fp:tag-01') return 'id1';
+      if (key === 'entity:id1') return JSON.stringify({ id: 'id1', fingerprint: 'tag-01', status: 'unknown' });
+      return null;
+    });
+    prisma.entity.update.mockRejectedValue(new Error('connection refused'));
+
+    await service.resolve('tag-01');
+    await new Promise((resolve) => setImmediate(resolve));
+
+    expect(logError).toHaveBeenCalledWith(
+      'could not update lastSeen in the database and cache (1 failed updates so far): connection refused',
+    );
   });
 });

@@ -13,7 +13,7 @@ export class HistoryController {
   }
 
   @Get()
-  query(@Query() q: HistoryQueryDto): Promise<HistoryPoint[]> {
-    return this.history.query(q.from, q.to, q.bucketMs);
+  query(@Query() query: HistoryQueryDto): Promise<HistoryPoint[]> {
+    return this.history.query(query);
   }
 }
