@@ -4,7 +4,6 @@
     "module": "commonjs",
     "moduleResolution": "node",
     "declaration": true,
-    "noUncheckedIndexedAccess": true,
     "outDir": "dist",
     "rootDir": "src"
   },
