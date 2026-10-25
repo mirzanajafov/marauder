@@ -131,9 +131,21 @@ speed).
 The live demo runs from `deploy/docker-compose.prod.yml` on a small VPS, behind a
 Caddy that several of my projects share. Nothing publishes a port: the web container
 joins that proxy's `edge` network. A release is `deploy/deploy.sh`: it backs up,
-fast-forwards to `origin/main`, rebuilds, runs the migrations, and waits for the API
-and the web app to answer. If they don't, it resets to the commit it started from and
-rebuilds that.
+fast-forwards to `origin/main` and builds the three images from one multi-stage
+`deploy/Dockerfile`. Before anything restarts, it runs the new API and simulator images
+against the server's `.env` and stops if either one refuses a setting, so a bad secret
+can't take the running site down. Then it migrates with the new image, restarts, and
+waits for `/api/health`, which only answers 200 while Postgres, Redis and the MQTT broker
+are all reachable. If that never happens, it goes back to the commit and the exact images
+that were running before, without rebuilding them. The exception is a release that
+migrates the database. The old code can't always read the new schema (the status enum
+was the first time), so for those it stops the old API before migrating, and if the new
+one then fails it says so and leaves the way back to me: fix forward, or restore the
+predeploy dump.
+
+The images only carry production dependencies, and the API and the simulator share one
+dependency layer. The two of them used to be 1.35 GB and 1.26 GB on the server, built
+separately. Now they are 764 MB together, of which each one adds less than 1 MB.
 
 The backup container dumps the database every night and keeps two weeks. I leave the
 position history out on purpose. It is simulator traffic that refills itself within
