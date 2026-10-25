@@ -1,10 +1,12 @@
 import { Module } from '@nestjs/common';
-import { EntitiesService } from './entities.service';
 import { EntitiesController } from './entities.controller';
+import { EntitiesService } from './entities.service';
+import { EntityStore } from './entity.store';
+import { ResolutionService } from './resolution.service';
 
 @Module({
-  providers: [EntitiesService],
+  providers: [EntityStore, EntitiesService, ResolutionService],
   controllers: [EntitiesController],
-  exports: [EntitiesService],
+  exports: [ResolutionService],
 })
 export class EntitiesModule {}
