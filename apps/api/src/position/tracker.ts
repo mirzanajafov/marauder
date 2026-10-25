@@ -36,10 +36,6 @@ export class Tracker {
 
   constructor(private readonly options: TrackerOptions) {}
 
-  get size(): number {
-    return this.tracks.size;
-  }
-
   record(entity: TrackedEntity, signal: RawSignal): void {
     let track = this.tracks.get(entity.id);
     if (!track) {
@@ -72,7 +68,7 @@ export class Tracker {
     });
   }
 
-  positions(now: number, receivers: Map<string, Receiver>): PositionUpdate[] {
+  advance(now: number, receivers: Map<string, Receiver>): PositionUpdate[] {
     const updates: PositionUpdate[] = [];
     const alpha = this.options.alpha;
 

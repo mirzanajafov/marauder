@@ -78,7 +78,7 @@ export class PositionService implements OnModuleInit, OnModuleDestroy {
 
   private async flush(): Promise<void> {
     const now = Date.now();
-    const updates = this.tracker.positions(now, this.receivers);
+    const updates = this.tracker.advance(now, this.receivers);
 
     if (updates.length === 0) {
       return;
@@ -96,7 +96,7 @@ export class PositionService implements OnModuleInit, OnModuleDestroy {
           entityId: u.entityId,
           x: u.x,
           y: u.y,
-          accuracy: Number.isFinite(u.accuracy) ? u.accuracy : 0,
+          accuracy: u.accuracy,
         })),
         skipDuplicates: true,
       });

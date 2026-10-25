@@ -160,7 +160,7 @@ export function measure(scenario: Scenario, list: Variant[], run: Run): Record<s
       continue;
     }
     for (const entry of trackers) {
-      for (const update of entry.tracker.positions(nextFlush, receivers)) {
+      for (const update of entry.tracker.advance(nextFlush, receivers)) {
         const tag = tagByFingerprint.get(update.entityId);
         if (!tag) {
           continue;
