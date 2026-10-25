@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { FloorPlan, Receiver } from '@marauder/shared';
 import { createReceiver, deleteReceiver, updateFloorPlan, updateReceiver } from './api';
+import { parseNumber } from './fields';
 import { FloorMap } from './FloorMap';
 import { useAction } from './session';
 
@@ -56,8 +57,8 @@ function FloorPlanForm({ plan, onSaved }: { plan: FloorPlan; onSaved: (plan: Flo
       onSaved(
         await updateFloorPlan(token, {
           imageUrl: imageUrl.trim() === '' ? null : imageUrl.trim(),
-          width: Number(width),
-          height: Number(height),
+          width: parseNumber('width', width),
+          height: parseNumber('height', height),
           floor: plan.floor,
         }),
       );
@@ -105,8 +106,8 @@ function AddReceiver({ plan, draft, onDraft, onAdded }: AddReceiverProps) {
       await createReceiver(token, {
         id: draft.id.trim(),
         name: draft.name.trim(),
-        x: Number(draft.x || 0),
-        y: Number(draft.y || 0),
+        x: parseNumber('x', draft.x),
+        y: parseNumber('y', draft.y),
         floor: plan.floor,
       });
     });
@@ -152,7 +153,7 @@ function ReceiverRow({ receiver, onChange }: { receiver: Receiver; onChange: () 
 
   const save = async (): Promise<void> => {
     const saved = await run(async (token) => {
-      await updateReceiver(token, receiver.id, { name: name.trim(), x: Number(x), y: Number(y) });
+      await updateReceiver(token, receiver.id, { name: name.trim(), x: parseNumber('x', x), y: parseNumber('y', y) });
     });
     if (saved) {
       onChange();
