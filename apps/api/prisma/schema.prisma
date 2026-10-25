@@ -50,3 +50,10 @@ model FloorPlan {
 
   @@map("floorplans")
 }
+
+model RevokedToken {
+  jti       String   @id @db.Uuid
+  expiresAt DateTime @map("expires_at")
+
+  @@map("revoked_tokens")
+}

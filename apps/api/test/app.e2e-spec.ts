@@ -1,9 +1,11 @@
 import { randomUUID } from 'node:crypto';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { JwtService } from '@nestjs/jwt';
 import { Test } from '@nestjs/testing';
 import request from 'supertest';
 import { AppModule } from '../src/app.module';
+import { AuthService } from '../src/auth/auth.service';
 import { PrismaService } from '../src/prisma/prisma.service';
 
 describe('API (e2e)', () => {
@@ -218,6 +220,40 @@ describe('API (e2e)', () => {
       await request(app.getHttpServer()).get('/history?from=2999-01-01T00:00:00Z').expect(200).expect([]);
     } finally {
       await prisma.position.deleteMany({ where: { entityId } });
+    }
+  });
+
+  it('revokes a token on logout until it would have expired, drops lapsed revocations and leaves other sessions alone', async () => {
+    const lapsed = { jti: randomUUID(), expiresAt: new Date(Date.now() - 1000) };
+    const live = { jti: randomUUID(), expiresAt: new Date(Date.now() + 60_000) };
+    await prisma.revokedToken.createMany({ data: [lapsed, live] });
+    const password = app.get(ConfigService).getOrThrow<string>('ADMIN_PASSWORD');
+    const login = await request(app.getHttpServer()).post('/auth/login').send({ password }).expect(201);
+    const session = `Bearer ${login.body.token}`;
+    const { jti, exp } = app.get(JwtService).decode<{ jti: string; exp: number }>(login.body.token);
+    const jtis = [lapsed.jti, live.jti, jti];
+    await request(app.getHttpServer()).get('/auth/me').set('Authorization', session).expect(200);
+
+    await request(app.getHttpServer()).post('/auth/logout').set('Authorization', session).expect(204);
+
+    try {
+      const refused = await request(app.getHttpServer()).get('/auth/me').set('Authorization', session).expect(401);
+      expect(refused.body.message).toBe('token revoked');
+      await request(app.getHttpServer()).get('/auth/me').set('Authorization', auth()).expect(200);
+      const left = await prisma.revokedToken.findMany({ where: { jti: { in: jtis } }, orderBy: { expiresAt: 'asc' } });
+      expect(left).toEqual([live, { jti, expiresAt: new Date(exp * 1000) }]);
+    } finally {
+      await prisma.revokedToken.deleteMany({ where: { jti: { in: jtis } } });
+    }
+  });
+
+  it('takes the same session revoked twice, as two logouts racing would', async () => {
+    const session = { jti: randomUUID(), exp: Math.floor(Date.now() / 1000) + 60 };
+    try {
+      await app.get(AuthService).revoke(session);
+      await expect(app.get(AuthService).revoke(session)).resolves.toBeUndefined();
+    } finally {
+      await prisma.revokedToken.deleteMany({ where: { jti: session.jti } });
     }
   });
 });

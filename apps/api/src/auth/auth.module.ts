@@ -4,7 +4,6 @@ import { JwtModule } from '@nestjs/jwt';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
-import { AdminGuard } from './admin.guard';
 import { EnvironmentVariables } from '../config/env.validation';
 
 export const LOGIN_ATTEMPTS_PER_MINUTE = 5;
@@ -24,8 +23,8 @@ export const LOGIN_ATTEMPTS_PER_MINUTE = 5;
       errorMessage: 'too many login attempts, try again in a minute',
     }),
   ],
-  providers: [AuthService, AdminGuard],
+  providers: [AuthService],
   controllers: [AuthController],
-  exports: [AdminGuard, JwtModule],
+  exports: [AuthService],
 })
 export class AuthModule {}

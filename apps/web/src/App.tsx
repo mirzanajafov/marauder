@@ -10,7 +10,7 @@ import {
   Receiver,
   WsEvents,
 } from '@marauder/shared';
-import { fetchEntities, fetchFloorPlan, fetchReceivers, login, setAuthToken, tagEntity } from './api';
+import { fetchEntities, fetchFloorPlan, fetchReceivers, login, logout, setAuthToken, tagEntity } from './api';
 import { clearToken, loadToken, saveToken } from './token';
 import { createSocket } from './socket';
 import { FloorMap } from './FloorMap';
@@ -115,10 +115,14 @@ export function App() {
     }
   };
 
-  const logout = (): void => {
-    setToken(null);
-    setAuthToken(null);
-    clearToken();
+  const doLogout = async (): Promise<void> => {
+    try {
+      await logout();
+    } finally {
+      setToken(null);
+      setAuthToken(null);
+      clearToken();
+    }
   };
 
   const authed = token !== null;
@@ -147,7 +151,7 @@ export function App() {
           {authed ? (
             <>
               <span className="admin-badge">admin</span>
-              <button onClick={logout}>logout</button>
+              <button onClick={() => void doLogout()}>logout</button>
             </>
           ) : (
             <>

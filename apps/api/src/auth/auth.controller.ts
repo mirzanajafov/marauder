@@ -1,6 +1,7 @@
-import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, Post, UseGuards } from '@nestjs/common';
 import { ThrottlerGuard } from '@nestjs/throttler';
-import { AuthService } from './auth.service';
+import { AdminSession, AuthService } from './auth.service';
+import { CurrentSession } from './current-session.decorator';
 import { LoginDto } from './dto/login.dto';
 import { AdminGuard } from './admin.guard';
 
@@ -12,6 +13,13 @@ export class AuthController {
   @UseGuards(ThrottlerGuard)
   login(@Body() body: LoginDto): { token: string } {
     return this.auth.login(body.password);
+  }
+
+  @Post('logout')
+  @UseGuards(AdminGuard)
+  @HttpCode(204)
+  logout(@CurrentSession() session: AdminSession): Promise<void> {
+    return this.auth.revoke(session);
   }
 
   @Get('me')

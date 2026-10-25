@@ -1,29 +1,22 @@
 import { CanActivate, ExecutionContext, Injectable, UnauthorizedException } from '@nestjs/common';
-import { JwtService } from '@nestjs/jwt';
+import { AdminSession, AuthService } from './auth.service';
 
-interface BearerRequest {
+export interface SessionRequest {
   headers: { authorization?: string };
+  adminSession?: AdminSession;
 }
 
 @Injectable()
 export class AdminGuard implements CanActivate {
-  constructor(private readonly jwt: JwtService) {}
+  constructor(private readonly auth: AuthService) {}
 
-  canActivate(context: ExecutionContext): boolean {
-    const request = context.switchToHttp().getRequest<BearerRequest>();
-    const header = request.headers.authorization;
-    if (!header || !header.startsWith('Bearer ')) {
-      throw new UnauthorizedException('missing bearer token');
+  async canActivate(context: ExecutionContext): Promise<boolean> {
+    const request = context.switchToHttp().getRequest<SessionRequest>();
+    const token = /^Bearer +(\S+)$/i.exec(request.headers.authorization ?? '')?.[1];
+    if (token === undefined) {
+      throw new UnauthorizedException('expected an Authorization: Bearer <token> header');
     }
-    const token = header.slice(7);
-    try {
-      const payload = this.jwt.verify<{ role?: string }>(token);
-      if (payload.role !== 'admin') {
-        throw new UnauthorizedException('not an admin token');
-      }
-      return true;
-    } catch {
-      throw new UnauthorizedException('invalid token');
-    }
+    request.adminSession = await this.auth.verify(token);
+    return true;
   }
 }
