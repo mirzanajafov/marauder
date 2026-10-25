@@ -1,5 +1,5 @@
 import { DEFAULT_RECEIVERS, DEFAULT_SCENE, DEFAULT_TRAFFIC, createDefaultWorld, seededRandom } from '@marauder/shared';
-import { measure, scenarios, variants } from './accuracy';
+import { Errors, Scenario, measure, scenarios, variants } from './accuracy';
 
 function world(dropProb: number, seed: number) {
   return createDefaultWorld({ dropProb, random: seededRandom(seed) });
@@ -34,42 +34,41 @@ describe('simulated world', () => {
 });
 
 describe('accuracy benchmark', () => {
-  const before = variants.find((variant) => variant.name.includes('(before)'));
-  const live = variants.find((variant) => variant.name.includes('(live)'));
-  if (!before || !live) {
-    throw new Error('the benchmark lost its before or live variant');
-  }
-  const pair = [before, live];
   const quick = { seed: 3, minutes: 2 };
-  const scenario = (text: string) => {
-    const found = scenarios.find((candidate) => candidate.name.includes(text));
-    if (!found) {
-      throw new Error(`no scenario matching ${text}`);
+
+  function beforeAndLive(scenario: Scenario): { before: Errors; live: Errors } {
+    const results = measure(scenario, [variants.before, variants.live], quick);
+    const before = results[variants.before.name];
+    const live = results[variants.live.name];
+    if (!before || !live) {
+      throw new Error(`measure left out a variant for ${scenario.name}`);
     }
-    return found;
-  };
+    return { before, live };
+  }
 
   it('gives the same numbers for the same seed', () => {
     const once = { ...quick, minutes: 1 };
-    expect(measure(scenarios[0], [live], once)).toEqual(measure(scenarios[0], [live], once));
+    expect(measure(scenarios.simulatorDefault, [variants.live], once)).toEqual(
+      measure(scenarios.simulatorDefault, [variants.live], once),
+    );
   });
 
   it('stays about a metre off at the simulator default noise', () => {
-    const results = measure(scenario('simulator default'), pair, quick);
-    expect(results[live.name].samples).toBeGreaterThan(4000);
-    expect(results[live.name].median).toBeLessThan(1.3);
-    expect(results[live.name].p95).toBeLessThan(results[before.name].p95);
+    const { before, live } = beforeAndLive(scenarios.simulatorDefault);
+    expect(live.samples).toBeGreaterThan(4000);
+    expect(live.median).toBeLessThan(1.3);
+    expect(live.p95).toBeLessThan(before.p95);
   });
 
   it('cuts the error under heavy noise', () => {
-    const results = measure(scenario('6 dB'), pair, quick);
-    expect(results[live.name].median).toBeLessThan(0.75 * results[before.name].median);
+    const { before, live } = beforeAndLive(scenarios.noise6);
+    expect(live.median).toBeLessThan(0.75 * before.median);
   });
 
   it('keeps a wrong path-loss exponent from throwing dots out of the building', () => {
-    const results = measure(scenario('n=3.0'), pair, quick);
-    expect(results[before.name].outsideFloorPct).toBeGreaterThan(10);
-    expect(results[live.name].outsideFloorPct).toBe(0);
-    expect(results[live.name].p95).toBeLessThan(4);
+    const { before, live } = beforeAndLive(scenarios.wrongExponent);
+    expect(before.outsideFloorPct).toBeGreaterThan(10);
+    expect(live.outsideFloorPct).toBe(0);
+    expect(live.p95).toBeLessThan(4);
   });
 });

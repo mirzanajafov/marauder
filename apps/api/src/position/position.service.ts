@@ -9,7 +9,7 @@ import { FloorPlanService } from '../floorplan/floorplan.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { ReceiversService } from '../receivers/receivers.service';
 import { POSITION_ALPHA, RSSI_ALPHA, Tracker } from './tracker';
-import { Bounds, fitPosition } from './trilateration';
+import { Bounds, fitPosition } from './position-fit';
 
 export const LAYOUT_REFRESH_MS = 30_000;
 

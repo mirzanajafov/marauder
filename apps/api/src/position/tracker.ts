@@ -1,5 +1,5 @@
 import { Entity, PositionUpdate, RawSignal, Receiver } from '@marauder/shared';
-import { Anchor, Estimate, rssiToDistance } from './trilateration';
+import { Anchor, Estimate, rssiToDistance } from './position-fit';
 
 interface Reading {
   rssi: number;
