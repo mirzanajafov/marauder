@@ -3,7 +3,6 @@ RUN corepack enable
 WORKDIR /repo
 COPY . .
 RUN pnpm install --frozen-lockfile
-RUN pnpm --filter @marauder/shared build
 ARG VITE_API_URL=/api
 ARG VITE_WS_URL=
 RUN VITE_API_URL="$VITE_API_URL" VITE_WS_URL="$VITE_WS_URL" pnpm --filter @marauder/web build
