@@ -146,6 +146,10 @@ docker exec -i marauder-timescaledb pg_restore -U marauder -d marauder --no-owne
 docker exec marauder-timescaledb psql -U marauder -c "SELECT timescaledb_post_restore();"
 ```
 
+The API reloads the receivers and the floor plan after every edit it makes and once a
+minute on its own, and its cached entities expire after a minute, so a restore shows up
+within a minute.
+
 The history itself keeps one day, which I learned the hard way. Six simulated tags write
 about 40 rows a second, and with no retention that had become a 3.65 GB table in under
 four days, on a server my other projects share. The history summary took 28 seconds
