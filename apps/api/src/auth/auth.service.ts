@@ -1,6 +1,7 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
+import { EnvironmentVariables } from '../config/env.validation';
 
 @Injectable()
 export class AuthService {
@@ -8,9 +9,9 @@ export class AuthService {
 
   constructor(
     private readonly jwt: JwtService,
-    config: ConfigService,
+    config: ConfigService<EnvironmentVariables, true>,
   ) {
-    this.adminPassword = config.getOrThrow<string>('ADMIN_PASSWORD');
+    this.adminPassword = config.get('ADMIN_PASSWORD', { infer: true });
   }
 
   login(password: string): { token: string } {

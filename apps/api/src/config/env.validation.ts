@@ -1,21 +1,58 @@
-import { plainToInstance } from 'class-transformer';
-import { IsString, Matches, validateSync } from 'class-validator';
+import { Type } from 'class-transformer';
+import { IsInt, Matches, Max, Min, ValidateBy } from 'class-validator';
+import { MQTT_URL_PATTERN, validateEnvironment } from '@marauder/env';
+import { DEFAULT_PATH_LOSS_EXPONENT } from '@marauder/shared';
 
-class EnvironmentVariables {
-  @IsString()
+export const DEFAULT_POSITION_FLUSH_MS = 150;
+
+function isBrowserOrigin(value: unknown): boolean {
+  if (typeof value !== 'string' || !URL.canParse(value)) {
+    return false;
+  }
+  const url = new URL(value);
+  return (url.protocol === 'http:' || url.protocol === 'https:') && url.origin === value;
+}
+
+export class EnvironmentVariables {
+  @Matches(/^postgres(ql)?:\/\/\S+$/)
+  DATABASE_URL!: string;
+
+  @Matches(/^rediss?:\/\/\S+$/)
+  REDIS_URL!: string;
+
+  @Matches(MQTT_URL_PATTERN)
+  MQTT_URL!: string;
+
+  @ValidateBy({ name: 'isBrowserOrigin', validator: { validate: isBrowserOrigin } })
+  WEB_ORIGIN!: string;
+
   @Matches(/\S/)
   JWT_SECRET!: string;
 
-  @IsString()
   @Matches(/\S/)
   ADMIN_PASSWORD!: string;
+
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(65535)
+  API_PORT = 3001;
+
+  @Matches(/^[\w/-]*$/)
+  API_PREFIX = '';
+
+  @Type(() => Number)
+  @Min(1)
+  @Max(10)
+  PATH_LOSS_EXPONENT = DEFAULT_PATH_LOSS_EXPONENT;
+
+  @Type(() => Number)
+  @IsInt()
+  @Min(10)
+  @Max(10_000)
+  POSITION_FLUSH_MS = DEFAULT_POSITION_FLUSH_MS;
 }
 
-export function validateEnv(config: Record<string, unknown>): EnvironmentVariables {
-  const env = plainToInstance(EnvironmentVariables, config);
-  const errors = validateSync(env);
-  if (errors.length > 0) {
-    throw new Error(`invalid environment: ${errors.map((error) => error.property).join(', ')} must be set`);
-  }
-  return env;
+export function validateEnv(env: Record<string, unknown>): EnvironmentVariables {
+  return validateEnvironment(EnvironmentVariables, env);
 }

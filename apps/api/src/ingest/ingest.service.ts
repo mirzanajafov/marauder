@@ -1,22 +1,27 @@
 import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import mqtt, { MqttClient } from 'mqtt';
 import { RawSignal, SIGNAL_TOPIC_WILDCARD } from '@marauder/shared';
 import { ResolutionService } from '../resolution/resolution.service';
 import { PositionService } from '../position/position.service';
+import { EnvironmentVariables } from '../config/env.validation';
 
 @Injectable()
 export class IngestService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(IngestService.name);
+  private readonly mqttUrl: string;
   private client: MqttClient | null = null;
 
   constructor(
     private readonly resolution: ResolutionService,
     private readonly position: PositionService,
-  ) {}
+    config: ConfigService<EnvironmentVariables, true>,
+  ) {
+    this.mqttUrl = config.get('MQTT_URL', { infer: true });
+  }
 
   onModuleInit(): void {
-    const url = process.env.MQTT_URL ?? 'mqtt://localhost:1883';
-    const client = mqtt.connect(url);
+    const client = mqtt.connect(this.mqttUrl);
     this.client = client;
     client.on('connect', () => {
       client.subscribe(SIGNAL_TOPIC_WILDCARD, (err) => {

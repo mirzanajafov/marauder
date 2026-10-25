@@ -16,6 +16,7 @@
     "bench:accuracy": "tsx bench/accuracy.ts"
   },
   "dependencies": {
+    "@marauder/env": "workspace:*",
     "@marauder/shared": "workspace:*",
     "@nestjs/common": "^10.4.4",
     "@nestjs/config": "^3.2.3",

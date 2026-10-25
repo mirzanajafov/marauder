@@ -1,6 +1,8 @@
 import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { DEFAULT_PATH_LOSS_EXPONENT, Entity, FLOOR, PositionUpdate, RawSignal, Receiver } from '@marauder/shared';
+import { Entity, FLOOR, PositionUpdate, RawSignal, Receiver } from '@marauder/shared';
+import { EnvironmentVariables } from '../config/env.validation';
 import { FloorPlanService } from '../floorplan/floorplan.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { ReceiversService } from '../receivers/receivers.service';
@@ -20,13 +22,8 @@ export class PositionService implements OnModuleInit, OnModuleDestroy {
   private failedWrites = 0;
   private lastFailureLog = Number.NEGATIVE_INFINITY;
   private bounds: Bounds = { width: FLOOR.width, height: FLOOR.height };
-  private readonly tracker = new Tracker({
-    pathLossExponent:
-      Number(process.env.PATH_LOSS_EXPONENT ?? DEFAULT_PATH_LOSS_EXPONENT) || DEFAULT_PATH_LOSS_EXPONENT,
-    alpha: POSITION_ALPHA,
-    rssiAlpha: RSSI_ALPHA,
-    solve: (anchors) => fitPosition(anchors, this.bounds),
-  });
+  private readonly tracker: Tracker;
+  private readonly flushMs: number;
   private receivers = new Map<string, Receiver>();
   private flushTimer?: NodeJS.Timeout;
   private layoutTimer?: NodeJS.Timeout;
@@ -36,12 +33,20 @@ export class PositionService implements OnModuleInit, OnModuleDestroy {
     private readonly floorPlanService: FloorPlanService,
     private readonly prisma: PrismaService,
     private readonly events: EventEmitter2,
-  ) {}
+    config: ConfigService<EnvironmentVariables, true>,
+  ) {
+    this.flushMs = config.get('POSITION_FLUSH_MS', { infer: true });
+    this.tracker = new Tracker({
+      pathLossExponent: config.get('PATH_LOSS_EXPONENT', { infer: true }),
+      alpha: POSITION_ALPHA,
+      rssiAlpha: RSSI_ALPHA,
+      solve: (anchors) => fitPosition(anchors, this.bounds),
+    });
+  }
 
   async onModuleInit(): Promise<void> {
     await this.refreshLayout();
-    const flushMs = Number(process.env.POSITION_FLUSH_MS ?? 150) || 150;
-    this.flushTimer = setInterval(() => void this.flush(), flushMs);
+    this.flushTimer = setInterval(() => void this.flush(), this.flushMs);
     this.layoutTimer = setInterval(() => {
       this.refreshLayout().catch((error: unknown) => {
         this.logger.error(

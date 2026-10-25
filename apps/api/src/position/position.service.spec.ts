@@ -1,5 +1,12 @@
 import { DEFAULT_PATH_LOSS_EXPONENT, DEFAULT_RECEIVERS, DEFAULT_TX_POWER, Entity, RawSignal } from '@marauder/shared';
 import { Logger } from '@nestjs/common';
+import { ConfigModule } from '@nestjs/config';
+import { DEFAULT_POSITION_FLUSH_MS } from '../config/env.validation';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import { Test } from '@nestjs/testing';
+import { FloorPlanService } from '../floorplan/floorplan.service';
+import { PrismaService } from '../prisma/prisma.service';
+import { ReceiversService } from '../receivers/receivers.service';
 import { LAYOUT_REFRESH_MS, PositionService } from './position.service';
 
 function cleanRssi(px: number, py: number, x: number, y: number): number {
@@ -7,30 +14,44 @@ function cleanRssi(px: number, py: number, x: number, y: number): number {
   return DEFAULT_TX_POWER - 10 * DEFAULT_PATH_LOSS_EXPONENT * Math.log10(d);
 }
 
-describe('PositionService', () => {
-  beforeEach(() => {
-    process.env.POSITION_FLUSH_MS = '150';
-    process.env.PATH_LOSS_EXPONENT = String(DEFAULT_PATH_LOSS_EXPONENT);
-  });
+const TUNING = { POSITION_FLUSH_MS: DEFAULT_POSITION_FLUSH_MS, PATH_LOSS_EXPONENT: DEFAULT_PATH_LOSS_EXPONENT };
 
+async function positionService({
+  list = jest.fn().mockResolvedValue(DEFAULT_RECEIVERS),
+  createMany = jest.fn().mockResolvedValue({ count: 1 }),
+}: { list?: jest.Mock; createMany?: jest.Mock } = {}) {
+  const emit = jest.fn();
+  const moduleRef = await Test.createTestingModule({
+    imports: [ConfigModule.forRoot({ ignoreEnvFile: true, validate: () => TUNING })],
+    providers: [
+      PositionService,
+      { provide: ReceiversService, useValue: { list } },
+      {
+        provide: FloorPlanService,
+        useValue: { get: jest.fn().mockResolvedValue({ imageUrl: null, width: 40, height: 25, floor: 0 }) },
+      },
+      { provide: PrismaService, useValue: { position: { createMany } } },
+      { provide: EventEmitter2, useValue: { emit } },
+    ],
+  }).compile();
+  return { service: moduleRef.get(PositionService), list, createMany, emit };
+}
+
+describe('PositionService', () => {
   afterEach(() => {
     jest.useRealTimers();
   });
 
   it('keeps the last layout when a refresh fails and applies the next one that succeeds', async () => {
     jest.useFakeTimers();
-    const receiversService = {
+    const { service, list, emit } = await positionService({
       list: jest
         .fn()
         .mockResolvedValueOnce(DEFAULT_RECEIVERS)
         .mockRejectedValueOnce(new Error('connection refused'))
         .mockResolvedValue([]),
-    };
-    const floorPlan = { get: jest.fn().mockResolvedValue({ imageUrl: null, width: 40, height: 25, floor: 0 }) };
-    const prisma = { position: { createMany: jest.fn().mockResolvedValue({ count: 1 }) } };
-    const events = { emit: jest.fn() };
+    });
     const error = jest.spyOn(Logger.prototype, 'error').mockImplementation(() => undefined);
-    const service = new PositionService(receiversService as any, floorPlan as any, prisma as any, events as any);
     const entity: Entity = {
       id: 'e4',
       fingerprint: 'tag-04',
@@ -59,27 +80,23 @@ describe('PositionService', () => {
 
     hearFromEveryReceiver();
     await jest.advanceTimersByTimeAsync(1_000);
-    expect(events.emit).toHaveBeenCalledWith('positions.batch', {
+    expect(emit).toHaveBeenCalledWith('positions.batch', {
       positions: [expect.objectContaining({ entityId: 'e4', x: expect.closeTo(10, 0), y: expect.closeTo(5, 0) })],
     });
 
     await jest.advanceTimersByTimeAsync(LAYOUT_REFRESH_MS);
-    events.emit.mockClear();
+    emit.mockClear();
     hearFromEveryReceiver();
     await jest.advanceTimersByTimeAsync(1_000);
-    expect(receiversService.list).toHaveBeenCalledTimes(3);
-    expect(events.emit).not.toHaveBeenCalled();
+    expect(list).toHaveBeenCalledTimes(3);
+    expect(emit).not.toHaveBeenCalled();
     expect(error).toHaveBeenCalledTimes(1);
 
     service.onModuleDestroy();
   });
 
   it('emits a batched position near the true location', async () => {
-    const receiversService = { list: jest.fn().mockResolvedValue(DEFAULT_RECEIVERS) };
-    const floorPlan = { get: jest.fn().mockResolvedValue({ imageUrl: null, width: 40, height: 25, floor: 0 }) };
-    const prisma = { position: { createMany: jest.fn().mockResolvedValue({ count: 1 }) } };
-    const events = { emit: jest.fn() };
-    const service = new PositionService(receiversService as any, floorPlan as any, prisma as any, events as any);
+    const { service, emit, createMany } = await positionService();
     await (service as any).refreshLayout();
 
     const entity: Entity = {
@@ -107,8 +124,8 @@ describe('PositionService', () => {
 
     await (service as any).flush();
 
-    expect(events.emit).toHaveBeenCalledTimes(1);
-    const [event, payload] = events.emit.mock.calls[0];
+    expect(emit).toHaveBeenCalledTimes(1);
+    const [event, payload] = emit.mock.calls[0];
     expect(event).toBe('positions.batch');
     expect(payload.positions).toHaveLength(1);
     const pos = payload.positions[0];
@@ -117,15 +134,11 @@ describe('PositionService', () => {
     expect(pos.status).toBe('tagged');
     expect(pos.x).toBeCloseTo(px, 0);
     expect(pos.y).toBeCloseTo(py, 0);
-    expect(prisma.position.createMany).toHaveBeenCalledTimes(1);
+    expect(createMany).toHaveBeenCalledTimes(1);
   });
 
   it('drops a track after it goes quiet', async () => {
-    const receiversService = { list: jest.fn().mockResolvedValue(DEFAULT_RECEIVERS) };
-    const floorPlan = { get: jest.fn().mockResolvedValue({ imageUrl: null, width: 40, height: 25, floor: 0 }) };
-    const prisma = { position: { createMany: jest.fn().mockResolvedValue({ count: 0 }) } };
-    const events = { emit: jest.fn() };
-    const service = new PositionService(receiversService as any, floorPlan as any, prisma as any, events as any);
+    const { service, emit } = await positionService();
     await (service as any).refreshLayout();
 
     const entity: Entity = {
@@ -147,17 +160,15 @@ describe('PositionService', () => {
 
     await (service as any).flush();
 
-    expect(events.emit).not.toHaveBeenCalled();
+    expect(emit).not.toHaveBeenCalled();
     expect((service as any).tracker.size).toBe(0);
   });
 
   it('keeps the live map going and logs once when history writes fail', async () => {
-    const receiversService = { list: jest.fn().mockResolvedValue(DEFAULT_RECEIVERS) };
-    const floorPlan = { get: jest.fn().mockResolvedValue({ imageUrl: null, width: 40, height: 25, floor: 0 }) };
-    const prisma = { position: { createMany: jest.fn().mockRejectedValue(new Error('connection refused')) } };
-    const events = { emit: jest.fn() };
+    const { service, emit, createMany } = await positionService({
+      createMany: jest.fn().mockRejectedValue(new Error('connection refused')),
+    });
     const error = jest.spyOn(Logger.prototype, 'error').mockImplementation(() => undefined);
-    const service = new PositionService(receiversService as any, floorPlan as any, prisma as any, events as any);
     await (service as any).refreshLayout();
 
     const entity: Entity = {
@@ -182,8 +193,8 @@ describe('PositionService', () => {
       await expect((service as any).flush()).resolves.toBeUndefined();
     }
 
-    expect(events.emit).toHaveBeenCalledTimes(3);
-    expect(prisma.position.createMany).toHaveBeenCalledTimes(3);
+    expect(emit).toHaveBeenCalledTimes(3);
+    expect(createMany).toHaveBeenCalledTimes(3);
     expect(error).toHaveBeenCalledTimes(1);
     expect(error.mock.calls[0][0]).toContain('connection refused');
   });

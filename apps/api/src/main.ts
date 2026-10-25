@@ -1,19 +1,20 @@
 import 'reflect-metadata';
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { AppModule } from './app.module';
+import { EnvironmentVariables } from './config/env.validation';
 
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AppModule);
-  const prefix = process.env.API_PREFIX;
+  const config = app.get<ConfigService<EnvironmentVariables, true>>(ConfigService);
+  const prefix = config.get('API_PREFIX', { infer: true });
   if (prefix) {
     app.setGlobalPrefix(prefix);
   }
-  const webOrigin = process.env.WEB_ORIGIN ?? 'http://localhost:5173';
-  app.enableCors({ origin: webOrigin });
+  app.enableCors({ origin: config.get('WEB_ORIGIN', { infer: true }) });
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
-  const port = Number(process.env.API_PORT ?? 3001);
-  await app.listen(port);
+  await app.listen(config.get('API_PORT', { infer: true }));
 }
 
 void bootstrap();
