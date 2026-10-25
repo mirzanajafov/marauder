@@ -2,7 +2,7 @@ name: marauder
 
 services:
   timescaledb:
-    image: timescale/timescaledb:latest-pg16
+    image: timescale/timescaledb:2.30.1-pg16
     container_name: marauder-timescaledb
     restart: unless-stopped
     environment:
@@ -39,11 +39,17 @@ services:
   api:
     build:
       context: ..
-      dockerfile: deploy/Dockerfile.api
+      dockerfile: deploy/Dockerfile
+      target: api
     container_name: marauder-api
     restart: unless-stopped
+    init: true
     env_file: .env
     environment:
+      REDIS_URL: redis://redis:6379
+      MQTT_URL: mqtt://mosquitto:1883
+      API_PORT: 3001
+      API_PREFIX: api
       TRUST_PROXY_HOPS: 2
     depends_on:
       timescaledb:
@@ -58,7 +64,8 @@ services:
   web:
     build:
       context: ..
-      dockerfile: deploy/Dockerfile.web
+      dockerfile: deploy/Dockerfile
+      target: web
     container_name: marauder-web
     restart: unless-stopped
     depends_on:
@@ -70,10 +77,13 @@ services:
   simulator:
     build:
       context: ..
-      dockerfile: deploy/Dockerfile.simulator
+      dockerfile: deploy/Dockerfile
+      target: simulator
     container_name: marauder-simulator
     restart: unless-stopped
-    env_file: .env
+    init: true
+    environment:
+      MQTT_URL: mqtt://mosquitto:1883
     depends_on:
       - mosquitto
       - api
@@ -81,7 +91,7 @@ services:
       - internal
 
   backup:
-    image: timescale/timescaledb:latest-pg16
+    image: timescale/timescaledb:2.30.1-pg16
     container_name: marauder-backup
     restart: unless-stopped
     entrypoint: ['sh', '/usr/local/bin/backup.sh']

@@ -22,7 +22,7 @@ healthy() {
 release() {
   "${compose[@]}" build
   "${compose[@]}" up -d timescaledb
-  "${compose[@]}" run --rm --no-deps api sh -c "pnpm exec prisma migrate deploy"
+  "${compose[@]}" run --rm --no-deps api ./node_modules/.bin/prisma migrate deploy
   "${compose[@]}" up -d --remove-orphans
 }
 
