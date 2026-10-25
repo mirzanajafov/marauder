@@ -45,6 +45,23 @@ export interface WorldOptions {
   random: Random;
 }
 
+export type Traffic = Pick<WorldOptions, 'tagCount' | 'speed' | 'noiseDb' | 'dropProb' | 'dwellMinMs' | 'dwellMaxMs'>;
+
+export const DEFAULT_SIM_HZ = 10;
+
+export function tickMs(hz: number): number {
+  return Math.round(1000 / hz);
+}
+
+export const DEFAULT_TRAFFIC: Readonly<Traffic> = {
+  tagCount: 6,
+  speed: 1.4,
+  noiseDb: 1.2,
+  dropProb: 0.08,
+  dwellMinMs: 2500,
+  dwellMaxMs: 7000,
+};
+
 export interface World {
   tags: SimTag[];
   rooms: string[];

@@ -1,27 +1,8 @@
-import {
-  DEFAULT_PATH_LOSS_EXPONENT,
-  DEFAULT_RECEIVERS,
-  DEFAULT_SCENE,
-  DEFAULT_TX_POWER,
-  createWorld,
-  seededRandom,
-} from '@marauder/shared';
+import { DEFAULT_RECEIVERS, DEFAULT_SCENE, DEFAULT_TRAFFIC, createDefaultWorld, seededRandom } from '@marauder/shared';
 import { measure, scenarios, variants } from './accuracy';
 
 function world(dropProb: number, seed: number) {
-  return createWorld({
-    scene: DEFAULT_SCENE,
-    receivers: DEFAULT_RECEIVERS,
-    tagCount: 6,
-    speed: 1.4,
-    noiseDb: 1.2,
-    dropProb,
-    dwellMinMs: 2500,
-    dwellMaxMs: 7000,
-    txPower: DEFAULT_TX_POWER,
-    pathLossExponent: DEFAULT_PATH_LOSS_EXPONENT,
-    random: seededRandom(seed),
-  });
+  return createDefaultWorld({ dropProb, random: seededRandom(seed) });
 }
 
 describe('simulated world', () => {
@@ -48,7 +29,7 @@ describe('simulated world', () => {
       }
     }
     expect(offFloor).toBe(0);
-    expect(w.signals(300_000)).toHaveLength(6 * DEFAULT_RECEIVERS.length);
+    expect(w.signals(300_000)).toHaveLength(DEFAULT_TRAFFIC.tagCount * DEFAULT_RECEIVERS.length);
   });
 });
 
@@ -59,7 +40,7 @@ describe('accuracy benchmark', () => {
     throw new Error('the benchmark lost its before or live variant');
   }
   const pair = [before, live];
-  const quick = { seed: 3, minutes: 2, tagCount: 6 };
+  const quick = { seed: 3, minutes: 2 };
   const scenario = (text: string) => {
     const found = scenarios.find((candidate) => candidate.name.includes(text));
     if (!found) {

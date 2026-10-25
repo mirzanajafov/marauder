@@ -2,11 +2,15 @@ import {
   DEFAULT_PATH_LOSS_EXPONENT,
   DEFAULT_RECEIVERS,
   DEFAULT_SCENE,
-  DEFAULT_TX_POWER,
+  DEFAULT_SIM_HZ,
+  DEFAULT_TRAFFIC,
   Receiver,
-  createWorld,
+  WorldOptions,
+  createDefaultWorld,
   seededRandom,
+  tickMs,
 } from '@marauder/shared';
+import { DEFAULT_POSITION_FLUSH_MS } from '../config/env.validation';
 import { POSITION_ALPHA, RSSI_ALPHA, Tracker, TrackerOptions } from './tracker';
 import { Anchor, Estimate, fitPosition, trilaterate, weightedCentroid } from './trilateration';
 
@@ -27,7 +31,6 @@ export interface Variant {
 export interface Run {
   seed: number;
   minutes: number;
-  tagCount: number;
 }
 
 export interface Errors {
@@ -40,8 +43,7 @@ export interface Errors {
   outsideFloorPct: number;
 }
 
-export const TICK_MS = 100;
-export const FLUSH_MS = 150;
+const TICK_MS = tickMs(DEFAULT_SIM_HZ);
 
 export function nearestReceiver(anchors: Anchor[]): Estimate {
   let best = anchors[0];
@@ -54,7 +56,11 @@ export function nearestReceiver(anchors: Anchor[]): Estimate {
 }
 
 export const scenarios: Scenario[] = [
-  { name: 'noise 1.2 dB (simulator default)', noiseDb: 1.2, pathLossExponent: DEFAULT_PATH_LOSS_EXPONENT },
+  {
+    name: `noise ${DEFAULT_TRAFFIC.noiseDb} dB (simulator default)`,
+    noiseDb: DEFAULT_TRAFFIC.noiseDb,
+    pathLossExponent: DEFAULT_PATH_LOSS_EXPONENT,
+  },
   { name: 'noise 3 dB', noiseDb: 3, pathLossExponent: DEFAULT_PATH_LOSS_EXPONENT },
   { name: 'noise 6 dB', noiseDb: 6, pathLossExponent: DEFAULT_PATH_LOSS_EXPONENT },
   { name: 'noise 3 dB, building at n=3.0, solver assumes 2.5', noiseDb: 3, pathLossExponent: 3 },
@@ -119,21 +125,16 @@ function summarize(all: number[], walking: number[], standing: number[], outside
   };
 }
 
+export function worldFor({
+  noiseDb,
+  pathLossExponent,
+  receiverBiasDb,
+}: Scenario): Omit<WorldOptions, 'scene' | 'receivers' | 'txPower' | 'random'> {
+  return { ...DEFAULT_TRAFFIC, noiseDb, pathLossExponent, receiverBiasDb };
+}
+
 export function measure(scenario: Scenario, list: Variant[], run: Run): Record<string, Errors> {
-  const world = createWorld({
-    scene: DEFAULT_SCENE,
-    receivers: DEFAULT_RECEIVERS,
-    tagCount: run.tagCount,
-    speed: 1.4,
-    noiseDb: scenario.noiseDb,
-    dropProb: 0.08,
-    dwellMinMs: 2500,
-    dwellMaxMs: 7000,
-    txPower: DEFAULT_TX_POWER,
-    pathLossExponent: scenario.pathLossExponent,
-    receiverBiasDb: scenario.receiverBiasDb,
-    random: seededRandom(run.seed),
-  });
+  const world = createDefaultWorld({ ...worldFor(scenario), random: seededRandom(run.seed) });
   const receivers = new Map<string, Receiver>(DEFAULT_RECEIVERS.map((r) => [r.id, r]));
   const trackers = list.map((variant) => {
     const options: TrackerOptions = {
@@ -156,7 +157,7 @@ export function measure(scenario: Scenario, list: Variant[], run: Run): Record<s
   const start = 1_000_000;
   const end = start + run.minutes * 60_000;
   let nextTick = start;
-  let nextFlush = start + FLUSH_MS;
+  let nextFlush = start + DEFAULT_POSITION_FLUSH_MS;
 
   while (nextTick <= end || nextFlush <= end) {
     if (nextTick <= nextFlush) {
@@ -184,7 +185,7 @@ export function measure(scenario: Scenario, list: Variant[], run: Run): Record<s
         (tag.moving ? entry.walking : entry.standing).push(error);
       }
     }
-    nextFlush += FLUSH_MS;
+    nextFlush += DEFAULT_POSITION_FLUSH_MS;
   }
 
   const results: Record<string, Errors> = {};

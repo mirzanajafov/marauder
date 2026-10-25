@@ -1,3 +1,5 @@
+import { DEFAULT_TRAFFIC, World, WorldOptions, createWorld } from './sim';
+
 export type EntityStatus = 'unknown' | 'tagged';
 
 export interface RawSignal {
@@ -291,3 +293,14 @@ function buildScene(): FloorScene {
 export const DEFAULT_SCENE: FloorScene = buildScene();
 
 export * from './sim';
+
+export function createDefaultWorld(options: Partial<WorldOptions> & Pick<WorldOptions, 'random'>): World {
+  return createWorld({
+    ...DEFAULT_TRAFFIC,
+    scene: DEFAULT_SCENE,
+    receivers: DEFAULT_RECEIVERS,
+    txPower: DEFAULT_TX_POWER,
+    pathLossExponent: DEFAULT_PATH_LOSS_EXPONENT,
+    ...options,
+  });
+}

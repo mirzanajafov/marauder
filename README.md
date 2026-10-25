@@ -95,20 +95,22 @@ the radio path, and the offset row is one draw of five offsets, not an average o
 - A simulator that generates noisy receiver traffic, so you can run the whole thing
   without hardware
 
-It runs as one API instance, and I want to be clear about why. The Socket.IO Redis adapter
-is wired, so sockets on several instances would share broadcasts, but that alone doesn't
-make it scale out: every instance subscribes to every receiver's topic and keeps its own
-tracks in memory, so two instances would both solve every tag and broadcast it twice.
-Scaling out needs one owner per tag, either a lease per group of tags in Redis or a broker
-that partitions by fingerprint. The demo doesn't need it yet. One instance takes the
-simulator's ~280 signals a second at somewhere between 14% and 56% of one core in a quick
-sample on the server, and every signal still costs two Redis reads to resolve its
-fingerprint, which is the first thing I'd cache in process if the load grew.
+It runs as one API instance, and I want to be clear about why. Every instance subscribes to
+every receiver's topic and keeps its own tracks in memory, so two instances would both
+solve every tag and broadcast it twice. For a while I had the Socket.IO Redis adapter wired
+so sockets on several instances would share broadcasts, but that alone never made it scale
+out, so I took it out along with the two Redis connections it kept open. Scaling out needs
+one owner per tag, either a lease per group of tags in Redis or a broker that partitions by
+fingerprint, and the adapter would come back with that. The demo doesn't need it yet. One
+instance takes the simulator's ~280 signals a second at somewhere between 14% and 56% of
+one core in a quick sample on the server, and every signal still costs two Redis reads to
+resolve its fingerprint, which is the first thing I'd cache in process if the load grew.
 
 ## Run it
 
 ```
 cp apps/api/.env.example apps/api/.env
+cp apps/simulator/.env.example apps/simulator/.env
 docker compose up -d
 pnpm install
 pnpm --filter api prisma migrate deploy
@@ -117,8 +119,11 @@ pnpm dev
 
 Then open the web app, watch tags appear as "unknown", and name one. Restart the
 simulator and it comes back already named. Tagging and the config tab need the admin
-password, which is `ADMIN_PASSWORD` in that `.env`. The API won't start without it or
-`JWT_SECRET`. Log in from the top bar.
+password, which is `ADMIN_PASSWORD` in that `.env`. Log in from the top bar. The API checks
+its whole config when it starts and won't run with a key missing or malformed (it names
+every one that is), so the copied `.env` is not optional. The simulator checks its own
+`.env` the same way, and that is where its knobs live (tag count, noise, dropouts, walking
+speed).
 
 ## Deploying
 
@@ -156,6 +161,7 @@ for a week at half-second resolution. Those two windows take 100 and 160 ms.
 - `apps/simulator`: MQTT traffic generator
 - `apps/web`: map + admin UI
 - `packages/shared`: shared types
+- `packages/env`: config validation for the API and the simulator
 
 ## Real sensors
 

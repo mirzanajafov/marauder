@@ -1,12 +1,20 @@
 {
   "run": {
     "seed": 7,
-    "minutes": 30,
-    "tagCount": 6
+    "minutes": 30
   },
   "results": [
     {
       "scenario": "noise 1.2 dB (simulator default)",
+      "world": {
+        "tagCount": 6,
+        "speed": 1.4,
+        "noiseDb": 1.2,
+        "dropProb": 0.08,
+        "dwellMinMs": 2500,
+        "dwellMaxMs": 7000,
+        "pathLossExponent": 2.5
+      },
       "variants": {
         "nearest receiver": {
           "samples": 72000,
@@ -75,6 +83,15 @@
     },
     {
       "scenario": "noise 3 dB",
+      "world": {
+        "tagCount": 6,
+        "speed": 1.4,
+        "noiseDb": 3,
+        "dropProb": 0.08,
+        "dwellMinMs": 2500,
+        "dwellMaxMs": 7000,
+        "pathLossExponent": 2.5
+      },
       "variants": {
         "nearest receiver": {
           "samples": 72000,
@@ -143,6 +160,15 @@
     },
     {
       "scenario": "noise 6 dB",
+      "world": {
+        "tagCount": 6,
+        "speed": 1.4,
+        "noiseDb": 6,
+        "dropProb": 0.08,
+        "dwellMinMs": 2500,
+        "dwellMaxMs": 7000,
+        "pathLossExponent": 2.5
+      },
       "variants": {
         "nearest receiver": {
           "samples": 72000,
@@ -211,6 +237,15 @@
     },
     {
       "scenario": "noise 3 dB, building at n=3.0, solver assumes 2.5",
+      "world": {
+        "tagCount": 6,
+        "speed": 1.4,
+        "noiseDb": 3,
+        "dropProb": 0.08,
+        "dwellMinMs": 2500,
+        "dwellMaxMs": 7000,
+        "pathLossExponent": 3
+      },
       "variants": {
         "nearest receiver": {
           "samples": 72000,
@@ -279,6 +314,16 @@
     },
     {
       "scenario": "noise 3 dB, each receiver off by a fixed offset (sd 3 dB)",
+      "world": {
+        "tagCount": 6,
+        "speed": 1.4,
+        "noiseDb": 3,
+        "dropProb": 0.08,
+        "dwellMinMs": 2500,
+        "dwellMaxMs": 7000,
+        "pathLossExponent": 2.5,
+        "receiverBiasDb": 3
+      },
       "variants": {
         "nearest receiver": {
           "samples": 72000,
