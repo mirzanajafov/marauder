@@ -45,6 +45,8 @@ export interface TagEntityInput {
   kind?: string;
 }
 
+export const MAX_HISTORY_BUCKETS = 2_000;
+
 export interface HistorySummary {
   from: string | null;
   to: string | null;

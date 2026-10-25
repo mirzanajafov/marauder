@@ -1,6 +1,6 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { Entity as EntityRow, Prisma } from '@prisma/client';
-import { HistoryPoint, HistorySummary } from '@marauder/shared';
+import { HistoryPoint, HistorySummary, MAX_HISTORY_BUCKETS } from '@marauder/shared';
 import { PrismaService } from '../prisma/prisma.service';
 import { HistoryQueryDto } from './dto/history-query.dto';
 
@@ -19,7 +19,6 @@ interface PointRow {
   status: EntityRow['status'];
 }
 
-const MAX_BUCKETS = 2_000;
 const DEFAULT_WINDOW_MS = 10 * 60_000;
 
 @Injectable()
@@ -44,8 +43,10 @@ export class HistoryService {
       }
       throw new BadRequestException('from must not be after to');
     }
-    if (span / bucketMs > MAX_BUCKETS) {
-      throw new BadRequestException(`at most ${MAX_BUCKETS} buckets per request: shorten the window or widen bucketMs`);
+    if (span / bucketMs > MAX_HISTORY_BUCKETS) {
+      throw new BadRequestException(
+        `at most ${MAX_HISTORY_BUCKETS} buckets per request: shorten the window or widen bucketMs`,
+      );
     }
 
     const rows = await this.prisma.$queryRaw<PointRow[]>(

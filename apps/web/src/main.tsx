@@ -2,7 +2,8 @@ import { createRoot } from 'react-dom/client';
 import { App } from './App';
 import './styles.css';
 
-const container = document.getElementById('root');
-if (container) {
-  createRoot(container).render(<App />);
+const root = document.getElementById('root');
+if (!root) {
+  throw new Error('index.html has no #root element');
 }
+createRoot(root).render(<App />);
