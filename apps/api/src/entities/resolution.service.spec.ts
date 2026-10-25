@@ -110,10 +110,10 @@ describe('ResolutionService', () => {
   it('logs when it cannot record that an entity was seen and keeps resolving', async () => {
     const { resolution, table } = await entitiesTestingModule();
     const logError = jest.spyOn(Logger.prototype, 'error').mockImplementation(() => undefined);
-    await table.createManyAndReturn({ data: [{ id: 'stored', fingerprint: 'tag-01' }], skipDuplicates: true });
+    const [stored] = await table.createManyAndReturn({ data: [{ fingerprint: 'tag-01' }], skipDuplicates: true });
     table.update.mockRejectedValueOnce(new Error('connection refused'));
 
-    await expect(resolution.resolve('tag-01')).resolves.toMatchObject({ id: 'stored' });
+    await expect(resolution.resolve('tag-01')).resolves.toMatchObject({ id: stored?.id });
     await new Promise((resolve) => setImmediate(resolve));
 
     expect(logError).toHaveBeenCalledWith('could not update lastSeen (1 failed updates so far): connection refused');
