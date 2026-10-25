@@ -5,8 +5,8 @@ const required = {
   REDIS_URL: 'redis://localhost:6379',
   MQTT_URL: 'mqtt://localhost:1883',
   WEB_ORIGIN: 'http://localhost:5173',
-  JWT_SECRET: 'jwt-secret',
-  ADMIN_PASSWORD: 'secret',
+  JWT_SECRET: 'a-jwt-secret-of-thirty-two-chars',
+  ADMIN_PASSWORD: 'a-long-enough-password',
 };
 
 describe('validateEnv', () => {
@@ -31,6 +31,18 @@ describe('validateEnv', () => {
     expect(() => validateEnv({ ...required, JWT_SECRET: '' })).toThrow('invalid environment: JWT_SECRET missing');
     expect(() => validateEnv({ ...required, ADMIN_PASSWORD: '   ' })).toThrow(
       'invalid environment: ADMIN_PASSWORD missing',
+    );
+  });
+
+  it('refuses an admin password shorter than 12 characters', () => {
+    expect(() => validateEnv({ ...required, ADMIN_PASSWORD: 'eleven-char' })).toThrow(
+      'invalid environment: ADMIN_PASSWORD missing or invalid',
+    );
+  });
+
+  it('refuses a JWT secret too short to be an HS256 key', () => {
+    expect(() => validateEnv({ ...required, JWT_SECRET: 'short-but-not-blank' })).toThrow(
+      'invalid environment: JWT_SECRET missing or invalid',
     );
   });
 

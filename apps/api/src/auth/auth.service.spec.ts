@@ -25,8 +25,9 @@ describe('AuthService', () => {
     expect(new JwtService({ secret: 'jwt-secret' }).verify(token)).toMatchObject({ role: 'admin' });
   });
 
-  it('rejects a wrong password', async () => {
+  it('rejects a wrong password, including one that only shares a prefix', async () => {
     const service = await authService();
     expect(() => service.login('nope')).toThrow(UnauthorizedException);
+    expect(() => service.login('secret-and-more')).toThrow(UnauthorizedException);
   });
 });
