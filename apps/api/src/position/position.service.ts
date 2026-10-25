@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Entity, FLOOR, PositionUpdate, RawSignal, Receiver } from '@marauder/shared';
 import { EnvironmentVariables } from '../config/env.validation';
+import { errorMessage } from '../common/error-message';
 import { FloorPlanService } from '../floorplan/floorplan.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { ReceiversService } from '../receivers/receivers.service';
@@ -11,10 +12,6 @@ import { Bounds, fitPosition } from './trilateration';
 
 export const WRITE_FAILURE_LOG_MS = 30_000;
 export const LAYOUT_REFRESH_MS = 30_000;
-
-function errorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
-}
 
 @Injectable()
 export class PositionService implements OnModuleInit, OnModuleDestroy {

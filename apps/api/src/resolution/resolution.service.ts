@@ -1,7 +1,9 @@
 import { randomUUID } from 'node:crypto';
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
+import { Entity as EntityRow, Prisma } from '@prisma/client';
 import { Entity } from '@marauder/shared';
+import { errorMessage } from '../common/error-message';
 import { PrismaService } from '../prisma/prisma.service';
 import { RedisService } from '../redis/redis.service';
 import { toEntityDto } from '../entities/entity.mapper';
@@ -10,6 +12,7 @@ const TOUCH_INTERVAL_MS = 10_000;
 
 @Injectable()
 export class ResolutionService {
+  private readonly logger = new Logger(ResolutionService.name);
   private readonly lastTouch = new Map<string, number>();
 
   constructor(
@@ -58,24 +61,22 @@ export class ResolutionService {
       }
     }
 
+    let row: EntityRow;
     try {
-      const row = await this.prisma.entity.create({
-        data: { id, fingerprint, status: 'unknown' },
-      });
-      const dto = toEntityDto(row);
-      await this.cache(dto);
-      this.events.emit('entity.discovered', { entity: dto });
-      return dto;
-    } catch {
-      const row = await this.prisma.entity.findUnique({ where: { fingerprint } });
-      if (row) {
-        const dto = toEntityDto(row);
-        await this.redis.client.set(key, dto.id);
-        await this.cache(dto);
-        return dto;
+      row = await this.prisma.entity.create({ data: { id, fingerprint, status: 'unknown' } });
+    } catch (error) {
+      if (!(error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002')) {
+        throw error;
       }
-      throw new Error(`could not resolve fingerprint ${fingerprint}`);
+      const dto = toEntityDto(await this.prisma.entity.findUniqueOrThrow({ where: { fingerprint } }));
+      await this.redis.client.set(key, dto.id);
+      await this.cache(dto);
+      return dto;
     }
+    const dto = toEntityDto(row);
+    await this.cache(dto);
+    this.events.emit('entity.discovered', { entity: dto });
+    return dto;
   }
 
   private async cache(entity: Entity): Promise<void> {
@@ -92,6 +93,8 @@ export class ResolutionService {
     void this.prisma.entity
       .update({ where: { id }, data: { lastSeen: new Date(now) } })
       .then((row) => this.cache(toEntityDto(row)))
-      .catch(() => undefined);
+      .catch((error: unknown) => {
+        this.logger.warn(`could not record that entity ${id} was seen: ${errorMessage(error)}`);
+      });
   }
 }

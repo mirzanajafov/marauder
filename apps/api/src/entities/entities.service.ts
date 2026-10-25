@@ -22,16 +22,12 @@ export class EntitiesService {
   async get(id: string): Promise<Entity> {
     const row = await this.prisma.entity.findUnique({ where: { id } });
     if (!row) {
-      throw new NotFoundException(`entity ${id} not found`);
+      throw new NotFoundException('entity not found');
     }
     return toEntityDto(row);
   }
 
   async tag(id: string, input: TagEntityDto): Promise<Entity> {
-    const exists = await this.prisma.entity.findUnique({ where: { id } });
-    if (!exists) {
-      throw new NotFoundException(`entity ${id} not found`);
-    }
     const row = await this.prisma.entity.update({
       where: { id },
       data: { name: input.name, kind: input.kind ?? null, status: 'tagged' },

@@ -5,6 +5,7 @@ import { RawSignal, SIGNAL_TOPIC_WILDCARD } from '@marauder/shared';
 import { ResolutionService } from '../resolution/resolution.service';
 import { PositionService } from '../position/position.service';
 import { EnvironmentVariables } from '../config/env.validation';
+import { errorMessage } from '../common/error-message';
 
 @Injectable()
 export class IngestService implements OnModuleInit, OnModuleDestroy {
@@ -49,7 +50,9 @@ export class IngestService implements OnModuleInit, OnModuleDestroy {
       const entity = await this.resolution.resolve(signal.fingerprint);
       this.position.record(entity, signal);
     } catch (err) {
-      this.logger.error(`handle failed: ${(err as Error).message}`);
+      this.logger.error(
+        `could not handle signal ${signal.fingerprint} from ${signal.receiverId}: ${errorMessage(err)}`,
+      );
     }
   }
 
