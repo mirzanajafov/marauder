@@ -1,4 +1,5 @@
 import {
+  DEFAULT_FLOORPLAN,
   DEFAULT_PATH_LOSS_EXPONENT,
   DEFAULT_RECEIVERS,
   DEFAULT_TX_POWER,
@@ -49,7 +50,7 @@ async function positionService({
 }: { receivers?: Receiver[]; createMany?: jest.Mock } = {}) {
   const emit = jest.fn<boolean, [string, PositionsBatchEvent]>();
   const layout: { plan: FloorPlan; read: () => Promise<Receiver[]> } = {
-    plan: { imageUrl: null, width: 40, height: 25, floor: 0 },
+    plan: { ...DEFAULT_FLOORPLAN },
     read: () => Promise.resolve(receivers),
   };
   const moduleRef = await Test.createTestingModule({

@@ -1,7 +1,15 @@
 import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
-import { Entity, FLOOR, PositionUpdate, PositionsBatchEvent, RawSignal, Receiver, WsEvents } from '@marauder/shared';
+import {
+  DEFAULT_FLOORPLAN,
+  Entity,
+  PositionUpdate,
+  PositionsBatchEvent,
+  RawSignal,
+  Receiver,
+  WsEvents,
+} from '@marauder/shared';
 import { EnvironmentVariables } from '../config/env.validation';
 import { errorMessage } from '../common/error-message';
 import { ThrottledLog } from '../common/throttled-log';
@@ -19,7 +27,7 @@ export const LAYOUT_RELOAD_MS = 60_000;
 export class PositionService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(PositionService.name);
   private readonly failedWrites = new ThrottledLog(this.logger);
-  private bounds: Bounds = { width: FLOOR.width, height: FLOOR.height };
+  private bounds: Bounds = { width: DEFAULT_FLOORPLAN.width, height: DEFAULT_FLOORPLAN.height };
   private readonly tracker: Tracker;
   private readonly flushMs: number;
   private receivers = new Map<string, Receiver>();

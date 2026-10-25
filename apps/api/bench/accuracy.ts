@@ -1,6 +1,7 @@
 import {
   DEFAULT_PATH_LOSS_EXPONENT,
   DEFAULT_RECEIVERS,
+  DEFAULT_FLOORPLAN,
   DEFAULT_SCENE,
   DEFAULT_SIM_HZ,
   DEFAULT_TRAFFIC,
@@ -63,7 +64,7 @@ export const scenarios = {
   },
 } satisfies Record<string, Scenario>;
 
-const floor = { width: DEFAULT_SCENE.width, height: DEFAULT_SCENE.height };
+const floor = { width: DEFAULT_FLOORPLAN.width, height: DEFAULT_FLOORPLAN.height };
 
 export const variants = {
   nearest: { name: 'nearest receiver', alpha: 1, rssiAlpha: 1, solve: nearestReceiver },

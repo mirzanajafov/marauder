@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
+  DEFAULT_FLOORPLAN,
   DEFAULT_SCENE,
   Entity,
   EntityDiscoveredEvent,
@@ -21,14 +22,13 @@ import { ConfigPanel } from './ConfigPanel';
 type Mode = 'live' | 'history' | 'config';
 type Trail = { x: number; y: number };
 
-const DEFAULT_FLOOR: FloorPlan = { imageUrl: null, width: DEFAULT_SCENE.width, height: DEFAULT_SCENE.height, floor: 0 };
 const TRAIL_LEN = 6;
 const TRAIL_MIN_MOVE = 0.5;
 
 export function App() {
   const [mode, setMode] = useState<Mode>('live');
   const [receivers, setReceivers] = useState<Receiver[]>([]);
-  const [floor, setFloor] = useState<FloorPlan>(DEFAULT_FLOOR);
+  const [floor, setFloor] = useState<FloorPlan>(DEFAULT_FLOORPLAN);
   const [entities, setEntities] = useState<Record<string, Entity>>({});
   const [positions, setPositions] = useState<Record<string, PositionUpdate>>({});
   const [trails, setTrails] = useState<Record<string, Trail[]>>({});

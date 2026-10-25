@@ -32,7 +32,6 @@ export default defineConfig(
       '@typescript-eslint/no-confusing-void-expression': ['error', { ignoreArrowShorthand: true }],
       '@typescript-eslint/consistent-type-definitions': 'off',
       '@typescript-eslint/no-unnecessary-condition': 'off',
-      '@typescript-eslint/non-nullable-type-assertion-style': 'off',
     },
   },
   {

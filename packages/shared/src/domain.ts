@@ -1,0 +1,68 @@
+export type EntityStatus = 'unknown' | 'tagged';
+
+export interface RawSignal {
+  fingerprint: string;
+  receiverId: string;
+  rssi: number;
+  txPower: number;
+  ts: number;
+}
+
+export interface Receiver {
+  id: string;
+  name: string;
+  x: number;
+  y: number;
+  floor: number;
+}
+
+export interface Entity {
+  id: string;
+  fingerprint: string;
+  name: string | null;
+  kind: string | null;
+  status: EntityStatus;
+  firstSeen: number;
+  lastSeen: number;
+}
+
+export interface Position {
+  entityId: string;
+  x: number;
+  y: number;
+  accuracy: number;
+  ts: number;
+}
+
+export interface PositionUpdate extends Position {
+  name: string | null;
+  status: EntityStatus;
+  kind: string | null;
+}
+
+export interface TagEntityInput {
+  name: string;
+  kind?: string;
+}
+
+export interface HistorySummary {
+  from: string | null;
+  to: string | null;
+}
+
+export interface HistoryPoint {
+  entityId: string;
+  x: number;
+  y: number;
+  accuracy: number;
+  time: number;
+  name: string | null;
+  status: EntityStatus;
+}
+
+export interface FloorPlan {
+  imageUrl: string | null;
+  width: number;
+  height: number;
+  floor: number;
+}
