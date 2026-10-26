@@ -4,6 +4,8 @@ import {
   DEFAULT_TX_POWER,
   Entity,
   FloorPlan,
+  PositionUpdate,
+  PositionsBatchEvent,
   Receiver,
   WsEvents,
 } from '@marauder/shared';
@@ -45,7 +47,7 @@ async function positionService({
   receivers = DEFAULT_RECEIVERS,
   createMany = jest.fn().mockResolvedValue({ count: 1 }),
 }: { receivers?: Receiver[]; createMany?: jest.Mock } = {}) {
-  const emit = jest.fn();
+  const emit = jest.fn<boolean, [string, PositionsBatchEvent]>();
   const layout: { plan: FloorPlan; read: () => Promise<Receiver[]> } = {
     plan: { imageUrl: null, width: 40, height: 25, floor: 0 },
     read: () => Promise.resolve(receivers),
@@ -64,6 +66,12 @@ async function positionService({
   const service = moduleRef.get(PositionService);
   await service.onModuleInit();
   return { service, createMany, emit, layout };
+}
+
+function lastBatch(emit: jest.Mock<boolean, [string, PositionsBatchEvent]>): PositionUpdate[] {
+  const call = emit.mock.lastCall;
+  expect(call?.[0]).toBe(WsEvents.PositionsBatch);
+  return call?.[1].positions ?? [];
 }
 
 function hear(service: PositionService, receiver: Receiver, rssi: number, ts = Date.now()): void {
@@ -90,17 +98,11 @@ describe('PositionService', () => {
     await jest.advanceTimersByTimeAsync(FLUSH_MS);
 
     expect(emit).toHaveBeenCalledTimes(1);
-    expect(emit).toHaveBeenCalledWith(WsEvents.PositionsBatch, {
-      positions: [
-        expect.objectContaining({
-          entityId: 'e1',
-          name: 'Lin',
-          status: 'tagged',
-          x: expect.closeTo(15, 0),
-          y: expect.closeTo(9, 0),
-        }),
-      ],
-    });
+    const batch = lastBatch(emit);
+    expect(batch).toHaveLength(1);
+    expect(batch[0]).toMatchObject({ entityId: 'e1', name: 'Lin', status: 'tagged' });
+    expect(batch[0]?.x).toBeCloseTo(15, 0);
+    expect(batch[0]?.y).toBeCloseTo(9, 0);
     expect(createMany).toHaveBeenCalledTimes(1);
   });
 
@@ -126,9 +128,10 @@ describe('PositionService', () => {
     await service.reloadLayout();
     hear(service, added, -59);
     await jest.advanceTimersByTimeAsync(FLUSH_MS);
-    expect(emit).toHaveBeenLastCalledWith(WsEvents.PositionsBatch, {
-      positions: [expect.objectContaining({ x: expect.closeTo(10, 6), y: expect.closeTo(5, 6) })],
-    });
+    const batch = lastBatch(emit);
+    expect(batch).toHaveLength(1);
+    expect(batch[0]?.x).toBeCloseTo(10, 6);
+    expect(batch[0]?.y).toBeCloseTo(5, 6);
 
     layout.read = () => Promise.resolve([]);
     await service.reloadLayout();
@@ -147,9 +150,9 @@ describe('PositionService', () => {
     hear(service, corner, -59);
     await jest.advanceTimersByTimeAsync(FLUSH_MS);
 
-    expect(emit).toHaveBeenLastCalledWith(WsEvents.PositionsBatch, {
-      positions: [expect.objectContaining({ x: 10, y: 8 })],
-    });
+    const batch = lastBatch(emit);
+    expect(batch).toHaveLength(1);
+    expect(batch[0]).toMatchObject({ x: 10, y: 8 });
   });
 
   it('reloads the layout once a minute through the same one-at-a-time path', async () => {
@@ -239,7 +242,7 @@ describe('PositionService', () => {
     }).compile();
     opened.push(moduleRef);
     await moduleRef.init();
-    const batches = jest.fn();
+    const batches = jest.fn<undefined, [PositionsBatchEvent]>();
     moduleRef.get(EventEmitter2).on(WsEvents.PositionsBatch, batches);
     const service = moduleRef.get(PositionService);
     const corner = receiver('R9', 40, 25);
@@ -248,7 +251,7 @@ describe('PositionService', () => {
     await moduleRef.get(FloorPlanService).update({ width: 10, height: 8 });
     hear(service, corner, -59);
     await jest.advanceTimersByTimeAsync(FLUSH_MS);
-    expect(batches).toHaveBeenLastCalledWith({ positions: [expect.objectContaining({ x: 10, y: 8 })] });
+    expect(batches.mock.lastCall?.[0].positions).toMatchObject([{ x: 10, y: 8 }]);
 
     await moduleRef.get(ReceiversService).remove(corner.id);
     batches.mockClear();
@@ -273,6 +276,6 @@ describe('PositionService', () => {
     expect(emit).toHaveBeenCalledTimes(3);
     expect(createMany).toHaveBeenCalledTimes(3);
     expect(error).toHaveBeenCalledTimes(1);
-    expect(error).toHaveBeenCalledWith(expect.stringContaining('connection refused'));
+    expect(error.mock.lastCall?.[0]).toContain('connection refused');
   });
 });

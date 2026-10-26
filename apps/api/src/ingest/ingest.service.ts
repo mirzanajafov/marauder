@@ -1,12 +1,13 @@
 import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import mqtt, { MqttClient } from 'mqtt';
-import { RawSignal, SIGNAL_TOPIC_WILDCARD } from '@marauder/shared';
+import { SIGNAL_TOPIC_WILDCARD } from '@marauder/shared';
 import { ResolutionService } from '../entities/resolution.service';
 import { PositionService } from '../position/position.service';
 import { EnvironmentVariables } from '../config/env.validation';
 import { errorMessage } from '../common/error-message';
 import { ThrottledLog } from '../common/throttled-log';
+import { parseSignal } from './parse-signal';
 
 @Injectable()
 export class IngestService implements OnModuleInit, OnModuleDestroy {
@@ -44,7 +45,7 @@ export class IngestService implements OnModuleInit, OnModuleDestroy {
   }
 
   private async handle(payload: Buffer): Promise<void> {
-    const signal = this.parse(payload);
+    const signal = parseSignal(payload, Date.now());
     if (!signal) {
       return;
     }
@@ -55,29 +56,6 @@ export class IngestService implements OnModuleInit, OnModuleDestroy {
       this.failedSignals.failure(
         (failures) => `could not handle a signal (${failures} failed signals so far): ${errorMessage(error)}`,
       );
-    }
-  }
-
-  private parse(payload: Buffer): RawSignal | null {
-    try {
-      const raw = JSON.parse(payload.toString()) as Partial<RawSignal>;
-      if (
-        typeof raw.fingerprint !== 'string' ||
-        typeof raw.receiverId !== 'string' ||
-        typeof raw.rssi !== 'number' ||
-        typeof raw.txPower !== 'number'
-      ) {
-        return null;
-      }
-      return {
-        fingerprint: raw.fingerprint,
-        receiverId: raw.receiverId,
-        rssi: raw.rssi,
-        txPower: raw.txPower,
-        ts: typeof raw.ts === 'number' ? raw.ts : Date.now(),
-      };
-    } catch {
-      return null;
     }
   }
 }

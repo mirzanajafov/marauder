@@ -1,10 +1,10 @@
 import { Server } from 'node:http';
-import { ValidationPipe } from '@nestjs/common';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { Test } from '@nestjs/testing';
 import request from 'supertest';
 import { AppModule } from '../src/app.module';
 import { LOGIN_ATTEMPTS_PER_MINUTE } from '../src/auth/auth.module';
+import { configureApp } from '../src/configure-app';
 
 const USED_UP = [...Array<number>(LOGIN_ATTEMPTS_PER_MINUTE).fill(401), 429];
 
@@ -26,7 +26,7 @@ describe('login rate limit behind one proxy', () => {
   beforeAll(async () => {
     const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
     app = moduleRef.createNestApplication<NestExpressApplication>();
-    app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
+    configureApp(app);
     app.set('trust proxy', 1);
     await app.init();
     server = app.getHttpServer();
