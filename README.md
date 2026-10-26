@@ -113,19 +113,24 @@ that read a row just before a rename could put the old name back for a minute.
 ```
 cp apps/api/.env.example apps/api/.env
 cp apps/simulator/.env.example apps/simulator/.env
-docker compose up -d
+docker compose up -d --wait
 pnpm install
-pnpm --filter api prisma migrate deploy
+pnpm --filter "./packages/*" build
+pnpm --filter @marauder/api exec prisma generate
+pnpm --filter @marauder/api exec prisma migrate deploy
+pnpm --filter @marauder/api prisma:seed
 pnpm dev
 ```
 
-Then open the web app, watch tags appear as "unknown", and name one. Restart the
-simulator and it comes back already named. Tagging and the config tab need the admin
-password, which is `ADMIN_PASSWORD` in that `.env`. Log in from the top bar. The API checks
-its whole config when it starts and won't run with a key missing or malformed (it names
-every one that is), so the copied `.env` is not optional. The simulator checks its own
-`.env` the same way, and that is where its knobs live (tag count, noise, dropouts, walking
-speed).
+The seed adds the default floor plan and its five receivers and leaves alone the ones
+that are already there, so running it again doesn't undo changes from the config tab. Then
+open the web app, watch
+tags appear as "unknown", and name one. Restart the simulator and it comes back already
+named. Tagging and the config tab need the admin password, which is `ADMIN_PASSWORD` in
+that `.env`. Log in from the top bar. The API checks its whole config when it starts and
+won't run with a key missing or malformed (it names every one that is), so the copied
+`.env` is not optional. The simulator checks its own `.env` the same way, and that is
+where its knobs live (tag count, noise, dropouts, walking speed).
 
 ## Deploying
 
@@ -208,9 +213,10 @@ simulator is just one source. Two reference receivers live in `hardware/`:
   RSSI. Set the wifi, MQTT host, `RECEIVER_ID` and `TX_POWER` at the top, flash three
   boards placed apart, and register them in the config tab.
 - `hardware/ble-scanner`: a cross-platform Python scanner for a laptop or Raspberry Pi.
-  Install with `pip install -r requirements.txt`, then run
-  `MQTT_HOST=... RECEIVER_ID=R1 TX_POWER=-59 python scanner.py`. It refuses to start with
-  an id or `TX_POWER` the API would drop.
+  Install it into a virtual environment (`python3 -m venv .venv`, then
+  `.venv/bin/pip install -r requirements.txt`) and run
+  `MQTT_HOST=... RECEIVER_ID=R1 TX_POWER=-59 .venv/bin/python scanner.py`. It refuses to
+  start with settings the API would drop or the broker can't take.
 
 Use fixed-id BLE beacons (or a phone in beacon mode) as tags. Each shows up as unknown
 until you name it. Set each receiver's position in the config tab and tune

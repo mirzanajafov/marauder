@@ -55,6 +55,7 @@ jobs:
       - run: ruff check .
       - run: ruff format --check .
       - run: mypy .
+      - run: pytest
 
   images:
     runs-on: ubuntu-latest

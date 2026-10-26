@@ -86,11 +86,6 @@ body {
   fill: #0b0f14;
 }
 
-.grid {
-  stroke: var(--line);
-  stroke-width: 0.05;
-}
-
 .receiver {
   fill: var(--accent);
   opacity: 0.8;
@@ -100,19 +95,6 @@ body {
   fill: var(--muted);
   font-size: 1.1px;
   text-anchor: middle;
-}
-
-.entity .dot {
-  stroke: #000;
-  stroke-width: 0.08;
-}
-
-.entity.unknown .dot {
-  fill: var(--unknown);
-}
-
-.entity.tagged .dot {
-  fill: var(--tagged);
 }
 
 .entity-label {
