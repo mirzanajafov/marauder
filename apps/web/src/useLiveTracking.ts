@@ -1,73 +1,57 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { io } from 'socket.io-client';
-import {
-  Entity,
-  EntityDiscoveredEvent,
-  EntityUpdatedEvent,
-  PositionUpdate,
-  PositionsBatchEvent,
-  WsEvents,
-} from '@marauder/shared';
+import { Entity, EntityDiscoveredEvent, EntityUpdatedEvent, PositionsBatchEvent, WsEvents } from '@marauder/shared';
 import { errorMessage, fetchEntities } from './api';
 import { WS_URL } from './config';
 import { Marker } from './FloorMap';
 import { mergeSnapshot } from './roster';
-import { TrailPoint, extendTrail } from './trails';
+import { Tracks, applyPositions, dropQuietTracks } from './tracks';
+import { LoadFailure } from './useLoaded';
 
-interface Track {
-  position: PositionUpdate;
-  trail: readonly TrailPoint[];
-}
+const PRUNE_MS = 1_000;
 
 export function useLiveTracking() {
   const [entities, setEntities] = useState<Record<string, Entity>>({});
-  const [tracks, setTracks] = useState<Record<string, Track>>({});
+  const [tracks, setTracks] = useState<Tracks>({});
   const [connected, setConnected] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const latestSnapshot = useRef(0);
+  const heardSinceSnapshot = useRef(new Set<string>());
 
   const rememberEntity = useCallback((entity: Entity): void => {
     setEntities((known) => ({ ...known, [entity.id]: entity }));
   }, []);
 
+  const loadSnapshot = useCallback((): void => {
+    latestSnapshot.current += 1;
+    const snapshot = latestSnapshot.current;
+    const heard = new Set<string>();
+    heardSinceSnapshot.current = heard;
+    fetchEntities().then(
+      (list) => {
+        if (snapshot === latestSnapshot.current) {
+          setEntities((known) => mergeSnapshot(list, known, heard));
+          setError(null);
+        }
+      },
+      (failure: unknown) => {
+        if (snapshot === latestSnapshot.current) {
+          setError(`could not load the tags: ${errorMessage(failure)}`);
+        }
+      },
+    );
+  }, []);
+
   useEffect(() => {
-    let latestSnapshot = 0;
-    let heardSinceSnapshot = new Set<string>();
     const announced = ({ entity }: EntityDiscoveredEvent | EntityUpdatedEvent): void => {
-      heardSinceSnapshot.add(entity.id);
+      heardSinceSnapshot.current.add(entity.id);
       rememberEntity(entity);
     };
     const move = ({ positions }: PositionsBatchEvent): void => {
-      setTracks((previous) => {
-        const next = { ...previous };
-        for (const position of positions) {
-          next[position.entityId] = {
-            position,
-            trail: extendTrail(previous[position.entityId]?.trail ?? [], position),
-          };
-        }
-        return next;
-      });
-    };
-    const loadSnapshot = (): void => {
-      latestSnapshot += 1;
-      const snapshot = latestSnapshot;
-      const heard = new Set<string>();
-      heardSinceSnapshot = heard;
-      fetchEntities().then(
-        (list) => {
-          if (snapshot === latestSnapshot) {
-            setEntities((known) => mergeSnapshot(list, known, heard));
-            setError(null);
-          }
-        },
-        (failure: unknown) => {
-          if (snapshot === latestSnapshot) {
-            setError(`could not load the tags: ${errorMessage(failure)}`);
-          }
-        },
-      );
+      setTracks((previous) => applyPositions(previous, positions, Date.now()));
     };
 
+    loadSnapshot();
     const socket = io(WS_URL, { transports: ['websocket'] });
     socket.on('connect', () => {
       setConnected(true);
@@ -77,10 +61,12 @@ export function useLiveTracking() {
     socket.on(WsEvents.EntityDiscovered, announced);
     socket.on(WsEvents.EntityUpdated, announced);
     socket.on(WsEvents.PositionsBatch, move);
+    const pruning = setInterval(() => setTracks((current) => dropQuietTracks(current, Date.now())), PRUNE_MS);
     return () => {
+      clearInterval(pruning);
       socket.close();
     };
-  }, [rememberEntity]);
+  }, [loadSnapshot, rememberEntity]);
 
   const markers = useMemo<Marker[]>(
     () =>
@@ -95,6 +81,7 @@ export function useLiveTracking() {
   );
 
   const entityList = useMemo(() => Object.values(entities), [entities]);
+  const failure: LoadFailure | null = error === null ? null : { message: error, retry: loadSnapshot };
 
-  return { entities: entityList, markers, connected, error, rememberEntity };
+  return { entities: entityList, markers, connected, failure, rememberEntity };
 }

@@ -19,7 +19,7 @@ export function App() {
   const layout = useLayout();
   const live = useLiveTracking();
   const plan = layout.plan ?? DEFAULT_FLOORPLAN;
-  const notices = [auth.notice, live.error].filter((notice) => notice !== null);
+  const failures = [...layout.failures, live.failure].filter((failure) => failure !== null);
 
   return (
     <SessionContext.Provider value={auth.session}>
@@ -47,12 +47,12 @@ export function App() {
             </div>
           )}
         </header>
-        {notices.map((notice) => (
-          <p key={notice} className="problem" role="alert">
-            {notice}
+        {auth.notice !== null && (
+          <p className="problem" role="alert">
+            {auth.notice}
           </p>
-        ))}
-        {layout.failures.map(({ message, retry }) => (
+        )}
+        {failures.map(({ message, retry }) => (
           <p key={message} className="problem" role="alert">
             {message}
             <button className="retry" onClick={retry}>
