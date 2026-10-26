@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { DEFAULT_FLOORPLAN_ID, FLOOR, FloorPlan } from '@marauder/shared';
+import { DEFAULT_FLOORPLAN, DEFAULT_FLOORPLAN_ID, FloorPlan } from '@marauder/shared';
 import { PrismaService } from '../prisma/prisma.service';
 import { UpdateFloorPlanDto } from './dto/update-floorplan.dto';
 import { FLOOR_PLAN_CHANGED } from './floorplan.events';
@@ -19,7 +19,7 @@ export class FloorPlanService {
       where: { id: DEFAULT_FLOORPLAN_ID },
       select: FLOOR_PLAN_FIELDS,
     });
-    return plan ?? { imageUrl: null, width: FLOOR.width, height: FLOOR.height, floor: 0 };
+    return plan ?? { ...DEFAULT_FLOORPLAN };
   }
 
   async update(dto: UpdateFloorPlanDto): Promise<FloorPlan> {

@@ -165,7 +165,8 @@ for a week at half-second resolution. Those two windows take 100 and 160 ms.
 - `apps/api`: NestJS backend
 - `apps/simulator`: MQTT traffic generator
 - `apps/web`: map + admin UI
-- `packages/shared`: shared types
+- `packages/shared`: wire types, MQTT and WebSocket names, the default building and receivers,
+  radio defaults, and the world model that the simulator and the bench run
 - `packages/env`: config validation for the API and the simulator
 
 ## Real sensors

@@ -1,4 +1,6 @@
-import type { FloorScene, NavNode, RawSignal, Receiver } from './index';
+import { DEFAULT_PATH_LOSS_EXPONENT, DEFAULT_TX_POWER } from './radio';
+import { DEFAULT_RECEIVERS, DEFAULT_SCENE, FloorScene, NavNode } from './scene';
+import { RawSignal, Receiver } from './domain';
 
 export type Random = () => number;
 
@@ -77,12 +79,37 @@ export function createWorld(options: WorldOptions): World {
     adjacency.set(node.id, []);
   }
   for (const [a, b] of scene.edges) {
-    adjacency.get(a)?.push(b);
-    adjacency.get(b)?.push(a);
+    const fromA = adjacency.get(a);
+    const fromB = adjacency.get(b);
+    if (!fromA || !fromB) {
+      throw new Error(`the scene has an edge from ${a} to ${b}, but not both nodes`);
+    }
+    fromA.push(b);
+    fromB.push(a);
   }
   const rooms = scene.nodes.map((n) => n.id).filter((id) => id.startsWith('room-'));
+  if (rooms.length === 0) {
+    throw new Error('the scene has no room- nodes for the tags to walk between');
+  }
 
-  const pick = <T>(items: T[]): T => items[Math.floor(random() * items.length)];
+  const requireNode = (id: string): NavNode => {
+    const found = nodeById.get(id);
+    if (!found) {
+      throw new Error(`the scene has no navigation node ${id}`);
+    }
+    return found;
+  };
+
+  const pick = <T>(items: T[]): T => {
+    if (items.length === 0) {
+      throw new Error('cannot pick from an empty list');
+    }
+    const item = items[Math.floor(random() * items.length)];
+    if (item === undefined) {
+      throw new Error('the random source returned a number outside [0, 1)');
+    }
+    return item;
+  };
 
   const shortestPath = (from: string, to: string): string[] => {
     if (from === to) {
@@ -91,24 +118,21 @@ export function createWorld(options: WorldOptions): World {
     const prev = new Map<string, string>();
     const seen = new Set<string>([from]);
     const queue: string[] = [from];
-    while (queue.length > 0) {
-      const cur = queue.shift() as string;
-      for (const nb of adjacency.get(cur) ?? []) {
-        if (seen.has(nb)) {
+    for (let current = queue.shift(); current !== undefined; current = queue.shift()) {
+      for (const next of adjacency.get(current) ?? []) {
+        if (seen.has(next)) {
           continue;
         }
-        seen.add(nb);
-        prev.set(nb, cur);
-        if (nb === to) {
+        seen.add(next);
+        prev.set(next, current);
+        if (next === to) {
           const path = [to];
-          let c = to;
-          while (prev.has(c)) {
-            c = prev.get(c) as string;
-            path.unshift(c);
+          for (let back = prev.get(to); back !== undefined; back = prev.get(back)) {
+            path.unshift(back);
           }
           return path;
         }
-        queue.push(nb);
+        queue.push(next);
       }
     }
     return [from];
@@ -123,12 +147,12 @@ export function createWorld(options: WorldOptions): World {
   const tags: SimTag[] = [];
   for (let i = 0; i < options.tagCount; i++) {
     const at = pick(rooms);
-    const start = nodeById.get(at);
+    const start = requireNode(at);
     const plan = nextDestination(at);
     tags.push({
       fingerprint: `tag-${String(i + 1).padStart(2, '0')}`,
-      x: start ? start.x : scene.width / 2,
-      y: start ? start.y : scene.height / 2,
+      x: start.x,
+      y: start.y,
       at,
       path: plan.path,
       step: plan.step,
@@ -149,18 +173,15 @@ export function createWorld(options: WorldOptions): World {
     if (now < tag.dwellUntil) {
       return;
     }
-    if (tag.step >= tag.path.length) {
+    const targetId = tag.path[tag.step];
+    if (targetId === undefined) {
       tag.dwellUntil = now + options.dwellMinMs + random() * (options.dwellMaxMs - options.dwellMinMs);
       const plan = nextDestination(tag.at);
       tag.path = plan.path;
       tag.step = plan.step;
       return;
     }
-    const target = nodeById.get(tag.path[tag.step]);
-    if (!target) {
-      tag.step += 1;
-      return;
-    }
+    const target = requireNode(targetId);
     const dx = target.x - tag.x;
     const dy = target.y - tag.y;
     const dist = Math.hypot(dx, dy);
@@ -168,7 +189,7 @@ export function createWorld(options: WorldOptions): World {
     if (dist < 0.2) {
       tag.x = target.x;
       tag.y = target.y;
-      tag.at = tag.path[tag.step];
+      tag.at = targetId;
       tag.step += 1;
       return;
     }
@@ -210,4 +231,15 @@ export function createWorld(options: WorldOptions): World {
       return out;
     },
   };
+}
+
+export function createDefaultWorld(options: Partial<WorldOptions> & Pick<WorldOptions, 'random'>): World {
+  return createWorld({
+    ...DEFAULT_TRAFFIC,
+    scene: DEFAULT_SCENE,
+    receivers: DEFAULT_RECEIVERS,
+    txPower: DEFAULT_TX_POWER,
+    pathLossExponent: DEFAULT_PATH_LOSS_EXPONENT,
+    ...options,
+  });
 }
