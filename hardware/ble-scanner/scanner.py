@@ -1,4 +1,5 @@
 import asyncio
+import contextlib
 import json
 import os
 import re
@@ -15,6 +16,7 @@ from paho.mqtt.enums import CallbackAPIVersion
 RECEIVER_ID_PATTERN = re.compile(r"[A-Za-z0-9][\w.:-]{0,39}", re.ASCII)
 NO_SIGNAL_DBM = -127
 HIGHEST_DBM = 20
+HIGHEST_PORT = 65535
 
 
 class SettingsError(ValueError):
@@ -42,11 +44,18 @@ def read_settings(env: Mapping[str, str]) -> Settings:
             "starting with a letter or digit"
         )
         raise SettingsError(message)
+    mqtt_host = env.get("MQTT_HOST", "localhost")
+    if not mqtt_host:
+        message = "MQTT_HOST must not be empty"
+        raise SettingsError(message)
     try:
         mqtt_port = int(env.get("MQTT_PORT", "1883"))
     except ValueError:
         message = "MQTT_PORT must be a port number"
         raise SettingsError(message) from None
+    if not 0 < mqtt_port <= HIGHEST_PORT:
+        message = f"MQTT_PORT must be between 1 and {HIGHEST_PORT}"
+        raise SettingsError(message)
     try:
         tx_power = float(env.get("TX_POWER", "-59"))
     except ValueError:
@@ -56,7 +65,7 @@ def read_settings(env: Mapping[str, str]) -> Settings:
         message = f"TX_POWER must be above {NO_SIGNAL_DBM} and at most {HIGHEST_DBM} dBm"
         raise SettingsError(message)
     return Settings(
-        mqtt_host=env.get("MQTT_HOST", "localhost"),
+        mqtt_host=mqtt_host,
         mqtt_port=mqtt_port,
         receiver_id=receiver_id,
         tag_prefix=env.get("TAG_PREFIX", ""),
@@ -65,7 +74,7 @@ def read_settings(env: Mapping[str, str]) -> Settings:
 
 
 def reading(settings: Settings, address: str, local_name: str | None, rssi: int) -> dict[str, object] | None:
-    if settings.tag_prefix and settings.tag_prefix not in (local_name or ""):
+    if not (local_name or "").startswith(settings.tag_prefix):
         return None
     if not NO_SIGNAL_DBM < rssi <= HIGHEST_DBM:
         return None
@@ -78,13 +87,12 @@ async def scan(settings: Settings, client: mqtt.Client) -> None:
         if payload is not None:
             client.publish(settings.topic, json.dumps(payload))
 
-    scanner = BleakScanner(detection_callback=on_device)
-    await scanner.start()
-    print(
-        f"scanning as receiver {settings.receiver_id}, publishing to "
-        f"{settings.mqtt_host}:{settings.mqtt_port} topic {settings.topic}"
-    )
-    await asyncio.Event().wait()
+    async with BleakScanner(detection_callback=on_device):
+        print(
+            f"scanning as receiver {settings.receiver_id}, publishing to "
+            f"{settings.mqtt_host}:{settings.mqtt_port} topic {settings.topic}"
+        )
+        await asyncio.Event().wait()
 
 
 def main() -> None:
@@ -95,7 +103,12 @@ def main() -> None:
     client = mqtt.Client(CallbackAPIVersion.VERSION2)
     client.connect(settings.mqtt_host, settings.mqtt_port, 60)
     client.loop_start()
-    asyncio.run(scan(settings, client))
+    try:
+        with contextlib.suppress(KeyboardInterrupt):
+            asyncio.run(scan(settings, client))
+    finally:
+        client.loop_stop()
+        client.disconnect()
 
 
 if __name__ == "__main__":

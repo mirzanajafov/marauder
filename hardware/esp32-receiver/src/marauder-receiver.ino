@@ -46,7 +46,7 @@ void ensureMqtt() {
 class ScanHandler : public NimBLEScanCallbacks {
   void onResult(const NimBLEAdvertisedDevice* device) override {
     String name = device->getName().c_str();
-    if (strlen(TAG_PREFIX) > 0 && name.indexOf(TAG_PREFIX) < 0) {
+    if (!name.startsWith(TAG_PREFIX)) {
       return;
     }
     int rssi = device->getRSSI();

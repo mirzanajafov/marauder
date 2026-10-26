@@ -28,6 +28,9 @@ def test_reads_a_fractional_tx_power() -> None:
         ({"RECEIVER_ID": "R1\n"}, "RECEIVER_ID"),
         ({"RECEIVER_ID": "Rü"}, "RECEIVER_ID"),
         ({"MQTT_PORT": "abc"}, "MQTT_PORT"),
+        ({"MQTT_PORT": "0"}, "MQTT_PORT"),
+        ({"MQTT_PORT": "70000"}, "MQTT_PORT"),
+        ({"MQTT_HOST": ""}, "MQTT_HOST"),
         ({"TX_POWER": "x"}, "TX_POWER"),
         ({"TX_POWER": "-127"}, "TX_POWER"),
         ({"TX_POWER": "21"}, "TX_POWER"),
@@ -52,6 +55,7 @@ def test_sends_the_calibrated_tx_power_whatever_the_tag_advertises() -> None:
     ("local_name", "rssi"),
     [
         ("phone", -70),
+        ("xtag-7", -70),
         (None, -70),
         ("tag-7", -127),
         ("tag-7", 127),
