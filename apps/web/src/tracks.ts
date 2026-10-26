@@ -16,7 +16,7 @@ export function applyPositions(tracks: Tracks, positions: readonly PositionUpdat
   for (const position of positions) {
     next[position.entityId] = {
       position,
-      trail: extendTrail(tracks[position.entityId]?.trail ?? [], position),
+      trail: extendTrail(next[position.entityId]?.trail ?? [], position),
       heardAt: now,
     };
   }

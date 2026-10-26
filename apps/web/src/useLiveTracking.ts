@@ -48,7 +48,7 @@ export function useLiveTracking() {
       rememberEntity(entity);
     };
     const move = ({ positions }: PositionsBatchEvent): void => {
-      setTracks((previous) => applyPositions(previous, positions, Date.now()));
+      setTracks((previous) => applyPositions(previous, positions, performance.now()));
     };
 
     loadSnapshot();
@@ -61,7 +61,7 @@ export function useLiveTracking() {
     socket.on(WsEvents.EntityDiscovered, announced);
     socket.on(WsEvents.EntityUpdated, announced);
     socket.on(WsEvents.PositionsBatch, move);
-    const pruning = setInterval(() => setTracks((current) => dropQuietTracks(current, Date.now())), PRUNE_MS);
+    const pruning = setInterval(() => setTracks((current) => dropQuietTracks(current, performance.now())), PRUNE_MS);
     return () => {
       clearInterval(pruning);
       socket.close();
