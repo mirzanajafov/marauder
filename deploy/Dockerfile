@@ -1,7 +1,9 @@
-FROM node:22-alpine AS base
+FROM node:22-alpine AS system
 RUN apk add --no-cache openssl
-ENV COREPACK_HOME=/usr/local/share/corepack
 WORKDIR /repo
+
+FROM system AS base
+ENV COREPACK_HOME=/usr/local/share/corepack
 COPY package.json ./
 RUN corepack enable && corepack install
 
@@ -26,30 +28,29 @@ ARG VITE_WS_URL=/
 RUN VITE_API_URL="$VITE_API_URL" VITE_WS_URL="$VITE_WS_URL" pnpm --filter @marauder/web build
 
 FROM manifests AS production
-RUN pnpm install --offline --frozen-lockfile --prod
+RUN rm -rf node_modules && pnpm install --offline --frozen-lockfile --prod --filter @marauder/api... --filter @marauder/simulator...
 COPY apps/api/prisma apps/api/prisma
 RUN pnpm --filter @marauder/api exec prisma generate
 COPY --from=build /repo/packages/shared/dist packages/shared/dist
 COPY --from=build /repo/packages/env/dist packages/env/dist
 
-FROM base AS runtime
-RUN chown node:node /repo
-COPY --from=production --chown=node:node /repo ./
+FROM system AS runtime
+COPY --from=production /repo ./
 
 FROM runtime AS api
-COPY --from=build --chown=node:node /repo/apps/api/dist apps/api/dist
+COPY --from=build /repo/apps/api/dist apps/api/dist
 WORKDIR /repo/apps/api
 USER node
 EXPOSE 3001
 CMD ["node", "dist/main.js"]
 
 FROM runtime AS simulator
-COPY --from=build --chown=node:node /repo/apps/simulator/dist apps/simulator/dist
+COPY --from=build /repo/apps/simulator/dist apps/simulator/dist
 WORKDIR /repo/apps/simulator
 USER node
 CMD ["node", "dist/main.js"]
 
-FROM nginx:1.29-alpine AS web
+FROM nginx:1.30-alpine AS web
 COPY deploy/nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=build /repo/apps/web/dist /usr/share/nginx/html
 EXPOSE 80
