@@ -42,7 +42,7 @@ export function rssiToDistance(rssi: number, txPower: number, pathLossExponent: 
   return Math.min(1000, Math.max(0.1, d));
 }
 
-export function weightedCentroid(anchors: Anchor[]): Estimate {
+function centroid(anchors: Anchor[]): { x: number; y: number } {
   let sw = 0;
   let sx = 0;
   let sy = 0;
@@ -51,16 +51,19 @@ export function weightedCentroid(anchors: Anchor[]): Estimate {
     sx += a.weight * a.x;
     sy += a.weight * a.y;
   }
-  const x = sx / sw;
-  const y = sy / sw;
+  return { x: sx / sw, y: sy / sw };
+}
+
+export function weightedCentroid(anchors: Anchor[]): Estimate {
+  const { x, y } = centroid(anchors);
   return { x, y, accuracy: residual(anchors, x, y) };
 }
 
 export function fitPosition(anchors: Anchor[], bounds: Bounds, fitScale = true): Estimate {
-  const start = weightedCentroid(anchors);
+  const start = centroid(anchors);
   let guess: Guess = { x: clamp(start.x, 0, bounds.width), y: clamp(start.y, 0, bounds.height), k: 1 };
   if (anchors.length < 3) {
-    return { x: guess.x, y: guess.y, accuracy: start.accuracy };
+    return { x: guess.x, y: guess.y, accuracy: residual(anchors, guess.x, guess.y) };
   }
   const terms = anchors.map((a) => ({ x: a.x, y: a.y, log: Math.log(a.distance) }));
   const prior = fitScale && anchors.length >= 4 ? SCALE_PRIOR : null;

@@ -66,4 +66,14 @@ describe('fitPosition', () => {
     expect(estimate.x).toBeCloseTo(centroid.x, 6);
     expect(estimate.y).toBeCloseTo(centroid.y, 6);
   });
+
+  it('measures the accuracy of a clamped fallback at the point it reports', () => {
+    const anchors: Anchor[] = [
+      { x: 40, y: 25, distance: 1, weight: 1 },
+      { x: 42, y: 25, distance: 1, weight: 1 },
+    ];
+    const estimate = fitPosition(anchors, { width: 10, height: 8 });
+    expect(estimate).toMatchObject({ x: 10, y: 8 });
+    expect(estimate.accuracy).toBeCloseTo(34.37, 2);
+  });
 });
