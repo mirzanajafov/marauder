@@ -13,9 +13,12 @@ describe('ResolutionService', () => {
 
     const id = await resolution.resolve('tag-01');
 
-    expect(table.rows).toMatchObject([{ id, fingerprint: 'tag-01', status: 'unknown', name: null }]);
+    const row = await table.findUniqueOrThrow({ where: { id } });
+    expect(row).toMatchObject({ fingerprint: 'tag-01', status: 'unknown', name: null, kind: null });
     expect(emit).toHaveBeenCalledTimes(1);
-    expect(emit.mock.lastCall).toMatchObject([WsEvents.EntityDiscovered, { entity: { id, fingerprint: 'tag-01' } }]);
+    expect(emit).toHaveBeenCalledWith(WsEvents.EntityDiscovered, {
+      entity: { ...row, firstSeen: row.firstSeen.getTime(), lastSeen: row.lastSeen.getTime() },
+    });
   });
 
   it('reads the database on the second sighting and the cache from the third on', async () => {
@@ -47,11 +50,7 @@ describe('ResolutionService', () => {
     const { resolution, table } = await entitiesTestingModule();
     const before = await resolution.resolve('tag-01');
     await resolution.resolve('tag-01');
-    const [row] = table.rows;
-    if (!row) {
-      throw new Error('the first sighting stored no row');
-    }
-    row.id = 'restored-id';
+    await table.update({ where: { id: before }, data: { id: 'restored-id' } });
 
     await expect(resolution.resolve('tag-01')).resolves.toBe(before);
     jest.advanceTimersByTime(60_000);

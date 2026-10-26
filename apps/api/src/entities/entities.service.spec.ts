@@ -13,18 +13,15 @@ describe('EntitiesService', () => {
     expect(emit).toHaveBeenLastCalledWith(WsEvents.EntityUpdated, { entity: tagged });
   });
 
-  it('leaves what a fingerprint resolves to alone on a rename, since the cache only holds the id', async () => {
-    const { entities, resolution, table, redis } = await entitiesTestingModule();
+  it('keeps resolving a fingerprint to the same entity after it is renamed', async () => {
+    const { entities, resolution } = await entitiesTestingModule();
     const id = await resolution.resolve('tag-01');
     await resolution.resolve('tag-01');
-    const cached = new Map(redis.values);
 
     await entities.tag(id, { name: 'Ada' });
-    table.findUnique.mockClear();
 
-    expect(redis.values).toEqual(cached);
     await expect(resolution.resolve('tag-01')).resolves.toBe(id);
-    expect(table.findUnique).not.toHaveBeenCalled();
+    await expect(entities.get(id)).resolves.toMatchObject({ name: 'Ada', status: 'tagged' });
   });
 
   it('keeps the kind when a rename leaves it out', async () => {

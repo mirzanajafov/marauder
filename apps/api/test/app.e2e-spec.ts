@@ -139,6 +139,18 @@ describe('API against Postgres and Redis', () => {
       }
     });
 
+    it('resolves a known fingerprint to the same entity from the database and then from the cache', async () => {
+      const fingerprint = `e2e-known-${randomUUID()}`;
+      try {
+        const first = await app.get(ResolutionService).resolve(fingerprint);
+        const fromDatabase = await app.get(ResolutionService).resolve(fingerprint);
+        const fromCache = await app.get(ResolutionService).resolve(fingerprint);
+        expect([fromDatabase, fromCache]).toEqual([first, first]);
+      } finally {
+        await prisma.entity.deleteMany({ where: { fingerprint } });
+      }
+    });
+
     it('creates one entity and announces it once when four first sightings of a fingerprint race', async () => {
       const racing = `e2e-race-${randomUUID()}`;
       const events = app.get(EventEmitter2);
