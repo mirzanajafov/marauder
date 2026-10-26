@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { ApiError, checkSession, errorMessage, login as requestToken, logout as revokeToken } from './api';
 
 const STORAGE_KEY = 'marauder_token';
@@ -95,7 +95,9 @@ export function useAuth() {
     }
   };
 
-  return { session: { token, expired }, notice, login, logout, loggingOut };
+  const session = useMemo(() => ({ token, expired }), [token, expired]);
+
+  return { session, notice, login, logout, loggingOut };
 }
 
 export function useAction() {

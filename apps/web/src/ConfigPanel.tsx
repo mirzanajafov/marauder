@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { memo, useState } from 'react';
 import { FloorPlan, Receiver } from '@marauder/shared';
 import { createReceiver, deleteReceiver, updateFloorPlan, updateReceiver } from './api';
 import { parseNumber } from './fields';
@@ -21,7 +21,7 @@ interface Draft {
 
 const EMPTY_DRAFT: Draft = { id: '', name: '', x: '', y: '' };
 
-export function ConfigPanel({ plan, receivers, onPlanChange, onReceiversChange }: Props) {
+export const ConfigPanel = memo(function ConfigPanel({ plan, receivers, onPlanChange, onReceiversChange }: Props) {
   const [draft, setDraft] = useState<Draft>(EMPTY_DRAFT);
 
   return (
@@ -44,7 +44,7 @@ export function ConfigPanel({ plan, receivers, onPlanChange, onReceiversChange }
       </aside>
     </div>
   );
-}
+});
 
 function FloorPlanForm({ plan, onSaved }: { plan: FloorPlan; onSaved: (plan: FloorPlan) => void }) {
   const [imageUrl, setImageUrl] = useState(plan.imageUrl ?? '');
