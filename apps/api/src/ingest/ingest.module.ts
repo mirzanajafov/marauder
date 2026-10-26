@@ -6,5 +6,6 @@ import { IngestService } from './ingest.service';
 @Module({
   imports: [EntitiesModule, PositionModule],
   providers: [IngestService],
+  exports: [IngestService],
 })
 export class IngestModule {}

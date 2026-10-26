@@ -83,6 +83,9 @@ importers:
       mqtt:
         specifier: ^5.10.1
         version: 5.16.0(supports-color@8.1.1)
+      prisma:
+        specifier: ^5.22.0
+        version: 5.22.0
       reflect-metadata:
         specifier: ^0.2.2
         version: 0.2.2
@@ -114,9 +117,6 @@ importers:
       jest:
         specifier: ^29.7.0
         version: 29.7.0(@types/node@22.20.4)(supports-color@8.1.1)
-      prisma:
-        specifier: ^5.22.0
-        version: 5.22.0
       supertest:
         specifier: ^7.0.0
         version: 7.3.0(supports-color@8.1.1)
@@ -209,6 +209,12 @@ importers:
 
   packages/env:
     dependencies:
+      class-transformer:
+        specifier: ^0.5.1
+        version: 0.5.1
+      class-validator:
+        specifier: ^0.14.1
+        version: 0.14.4
       reflect-metadata:
         specifier: ^0.2.2
         version: 0.2.2
@@ -219,12 +225,6 @@ importers:
       '@types/node':
         specifier: ^22.7.4
         version: 22.20.4
-      class-transformer:
-        specifier: ^0.5.1
-        version: 0.5.1
-      class-validator:
-        specifier: ^0.14.1
-        version: 0.14.4
       jest:
         specifier: ^29.7.0
         version: 29.7.0(@types/node@22.20.4)(supports-color@8.1.1)

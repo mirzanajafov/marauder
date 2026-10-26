@@ -42,6 +42,10 @@ export class IngestService implements OnModuleInit, OnModuleDestroy {
     client.on('error', (error) => this.logger.error(error.message));
   }
 
+  get connected(): boolean {
+    return this.client?.connected ?? false;
+  }
+
   onModuleDestroy(): void {
     this.client?.end(true);
   }

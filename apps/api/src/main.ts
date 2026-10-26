@@ -5,6 +5,7 @@ import { configureApp } from './configure-app';
 
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
+  app.enableShutdownHooks();
   const config = configureApp(app);
   await app.listen(config.get('API_PORT', { infer: true }));
 }

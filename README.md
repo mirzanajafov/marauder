@@ -132,9 +132,28 @@ speed).
 The live demo runs from `deploy/docker-compose.prod.yml` on a small VPS, behind a
 Caddy that several of my projects share. Nothing publishes a port: the web container
 joins that proxy's `edge` network. A release is `deploy/deploy.sh`: it backs up,
-fast-forwards to `origin/main`, rebuilds, runs the migrations, and waits for the API
-and the web app to answer. If they don't, it resets to the commit it started from and
-rebuilds that.
+fast-forwards to `origin/main` and builds the three images from one multi-stage
+`deploy/Dockerfile`. Before anything restarts, it runs the new API image against the
+server's `.env` and the new simulator image against its own settings, and stops if either
+one refuses, so a bad secret can't take the running site down. Then it compares the
+migrations the release ships with the ones the database has applied, and stops if the
+database has one the release doesn't know or one recorded as failed. A release with
+migrations stops the old API and migrates with the new image first, because the old code
+can't always read the new schema (the status enum was the first time). Then it restarts,
+waits for the containers' health checks (the API's `/api/health` only answers 200 while
+Postgres, Redis and the MQTT broker are all reachable) and makes one request to it
+through the site's own proxy. If any of that fails, a release without migrations goes
+back to the commit and the exact images that were running before, without rebuilding
+them. A release with migrations goes back only if no migration started. Once one did, it
+may have committed part of its SQL, so the script says so and leaves the way back to me:
+fix forward, or restore the predeploy dump.
+
+The API and simulator images share one layer with the production dependencies of the two
+of them, without pnpm and with no file the process can write to. The two of them
+used to be 1.35 GB and 1.26 GB on the server, built separately. Now they are 453 MB
+together, of which each one adds less than 1 MB. My first version of the shared layer was
+764 MB, because `pnpm fetch` had already put every development package into
+`node_modules` and a production install doesn't take them out again.
 
 The backup container dumps the database every night and keeps two weeks. I leave the
 position history out on purpose. It is simulator traffic that refills itself within

@@ -57,14 +57,20 @@ describe('API against Postgres and Redis', () => {
   });
 
   describe('health and CORS', () => {
-    it('reports health', async () => {
-      await request(server).get('/health').expect(200).expect({ status: 'ok' });
+    it('reports healthy once the database, Redis and the broker are all connected', async () => {
+      let res = await request(server).get('/health');
+      for (let attempt = 0; attempt < 50 && res.status !== 200; attempt++) {
+        await new Promise((resolve) => setTimeout(resolve, 100));
+        res = await request(server).get('/health');
+      }
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual({ status: 'ok', checks: { database: true, redis: true, mqtt: true } });
     });
 
     it('allows the web origin and no other', async () => {
-      const allowed = await request(server).get('/health').set('Origin', webOrigin).expect(200);
+      const allowed = await request(server).get('/receivers').set('Origin', webOrigin).expect(200);
       expect(allowed.headers['access-control-allow-origin']).toBe(webOrigin);
-      const foreign = await request(server).get('/health').set('Origin', 'https://elsewhere.example').expect(200);
+      const foreign = await request(server).get('/receivers').set('Origin', 'https://elsewhere.example').expect(200);
       expect(foreign.headers['access-control-allow-origin']).not.toBe('https://elsewhere.example');
     });
 
