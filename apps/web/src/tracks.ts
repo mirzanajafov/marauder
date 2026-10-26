@@ -1,8 +1,8 @@
 import { MAX_POSITION_FLUSH_MS, PositionUpdate } from '@marauder/shared';
 import { TrailPoint, extendTrail } from './trails';
 
-export const PRUNE_MS = 1_000;
-export const QUIET_TRACK_MS = 2 * MAX_POSITION_FLUSH_MS + PRUNE_MS;
+const LATE_BATCH_MS = 1_000;
+export const QUIET_TRACK_MS = 2 * MAX_POSITION_FLUSH_MS + LATE_BATCH_MS;
 
 export interface Track {
   position: PositionUpdate;

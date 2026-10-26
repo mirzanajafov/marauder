@@ -10,7 +10,12 @@ export function replaceWith<T>(_current: T, loaded: T): T {
   return loaded;
 }
 
-export function useLoaded<T, L>(load: () => Promise<L>, apply: (current: T, loaded: L) => T, initial: T, what: string) {
+export function useLoaded<T, L = T>(
+  load: () => Promise<L>,
+  apply: (current: T, loaded: L) => T,
+  initial: T,
+  what: string,
+) {
   const [value, setValue] = useState<T>(initial);
   const [error, setError] = useState<string | null>(null);
   const [loads, setLoads] = useState(0);

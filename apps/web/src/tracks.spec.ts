@@ -1,4 +1,4 @@
-import { PositionUpdate } from '@marauder/shared';
+import { MAX_POSITION_FLUSH_MS, PositionUpdate } from '@marauder/shared';
 import { QUIET_TRACK_MS, applyPositions, dropQuietTracks } from './tracks';
 
 function position(entityId: string, x: number): PositionUpdate {
@@ -25,6 +25,12 @@ describe('live tracks', () => {
     const tracks = applyPositions(applyPositions({}, [position('gone', 0)], 0), [position('here', 0)], QUIET_TRACK_MS);
 
     expect(Object.keys(dropQuietTracks(tracks, QUIET_TRACK_MS + 1))).toEqual(['here']);
+  });
+
+  it('keeps a tag that missed one batch at the slowest flush the API allows, even if the next one is late', () => {
+    const tracks = applyPositions({}, [position('a', 0)], 0);
+
+    expect(dropQuietTracks(tracks, 2 * MAX_POSITION_FLUSH_MS + 500)).toBe(tracks);
   });
 
   it('keeps the same tracks while every tag is still heard', () => {

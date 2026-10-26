@@ -3,8 +3,8 @@ import { fetchFloorPlan, fetchReceivers } from './api';
 import { replaceWith, useLoaded } from './useLoaded';
 
 export function useLayout() {
-  const plan = useLoaded<FloorPlan | null, FloorPlan>(fetchFloorPlan, replaceWith, null, 'floor plan');
-  const receivers = useLoaded<Receiver[], Receiver[]>(fetchReceivers, replaceWith, [], 'receivers');
+  const plan = useLoaded<FloorPlan | null>(fetchFloorPlan, replaceWith, null, 'floor plan');
+  const receivers = useLoaded<Receiver[]>(fetchReceivers, replaceWith, [], 'receivers');
 
   return {
     plan: plan.value,

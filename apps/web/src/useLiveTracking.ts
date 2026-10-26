@@ -5,8 +5,10 @@ import { fetchEntities } from './api';
 import { WS_URL } from './config';
 import { Marker } from './FloorMap';
 import { Snapshot, mergeSnapshot } from './roster';
-import { PRUNE_MS, Tracks, applyPositions, dropQuietTracks } from './tracks';
+import { Tracks, applyPositions, dropQuietTracks } from './tracks';
 import { useLoaded } from './useLoaded';
+
+const PRUNE_MS = 1_000;
 
 export function useLiveTracking() {
   const [tracks, setTracks] = useState<Tracks>({});
@@ -18,8 +20,12 @@ export function useLiveTracking() {
     heardDuringSnapshot.current = heardDuring;
     return { entities: await fetchEntities(), heardDuring };
   }, []);
-  const roster = useLoaded<Record<string, Entity>, Snapshot>(loadSnapshot, mergeSnapshot, {}, 'tags');
-  const { value: entities, setValue: setEntities, reload: reloadRoster } = roster;
+  const {
+    value: entities,
+    setValue: setEntities,
+    reload: reloadRoster,
+    failure,
+  } = useLoaded<Record<string, Entity>, Snapshot>(loadSnapshot, mergeSnapshot, {}, 'tags');
 
   const rememberEntity = useCallback(
     (entity: Entity): void => {
@@ -65,5 +71,5 @@ export function useLiveTracking() {
 
   const entityList = useMemo(() => Object.values(entities), [entities]);
 
-  return { entities: entityList, markers, connected, failure: roster.failure, rememberEntity };
+  return { entities: entityList, markers, connected, failure, rememberEntity };
 }
