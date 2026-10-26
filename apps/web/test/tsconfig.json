@@ -1,9 +1,0 @@
-{
-  "extends": "../tsconfig.json",
-  "compilerOptions": {
-    "types": ["jest"],
-    "module": "commonjs",
-    "moduleResolution": "node"
-  },
-  "include": [".", "../src/vite-env.d.ts"]
-}

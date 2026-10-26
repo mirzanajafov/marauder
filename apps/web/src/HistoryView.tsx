@@ -1,9 +1,8 @@
-import { ReactNode, useEffect, useMemo, useState } from 'react';
+import { ReactNode, memo, useEffect, useMemo, useState } from 'react';
 import { FloorPlan, HistoryPoint, Receiver } from '@marauder/shared';
-import { describeError, fetchHistory, fetchHistorySummary } from './api';
-import { FloorMap } from './FloorMap';
+import { errorMessage, fetchHistory, fetchHistorySummary } from './api';
+import { FloorMap, Marker } from './FloorMap';
 import { Frame, WINDOWS, bucketFor, buildFrames } from './history';
-import { Marker } from './marker';
 
 const SPEEDS = [0.5, 1, 2, 4] as const;
 
@@ -24,7 +23,7 @@ async function loadWindow(windowMs: number): Promise<HistoryPoint[]> {
   return fetchHistory(new Date(start).toISOString(), to, bucketFor(windowMs));
 }
 
-export function HistoryView({ plan, receivers }: Props) {
+export const HistoryView = memo(function HistoryView({ plan, receivers }: Props) {
   const [request, setRequest] = useState<{ windowMs: number }>({ windowMs: WINDOWS[0].ms });
   const [speed, setSpeed] = useState<number>(1);
   const [loaded, setLoaded] = useState<Loaded | null>(null);
@@ -40,7 +39,7 @@ export function HistoryView({ plan, receivers }: Props) {
       },
       (failure: unknown) => {
         if (current) {
-          setLoaded({ error: describeError(failure) });
+          setLoaded({ error: errorMessage(failure) });
         }
       },
     );
@@ -92,7 +91,7 @@ export function HistoryView({ plan, receivers }: Props) {
       {windows}
     </Playback>
   );
-}
+});
 
 function Message({ text, children }: { text: string; children: ReactNode }) {
   return (

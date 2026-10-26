@@ -1,5 +1,5 @@
 import { Entity } from '@marauder/shared';
-import { mergeSnapshot } from '../src/roster';
+import { mergeSnapshot } from './roster';
 
 function entity(id: string, name: string | null = null): Entity {
   return {
@@ -17,7 +17,7 @@ describe('mergeSnapshot', () => {
   it('replaces what the page knew with the snapshot', () => {
     const known = { a: entity('a', 'Old'), gone: entity('gone') };
 
-    expect(mergeSnapshot([entity('a', 'Ada'), entity('b')], known, new Set())).toEqual({
+    expect(mergeSnapshot(known, { entities: [entity('a', 'Ada'), entity('b')], heardDuring: new Set() })).toEqual({
       a: entity('a', 'Ada'),
       b: entity('b'),
     });
@@ -26,7 +26,7 @@ describe('mergeSnapshot', () => {
   it('keeps a tag announced while the snapshot was on its way over the older copy in it', () => {
     const known = { a: entity('a', 'Ada'), c: entity('c') };
 
-    expect(mergeSnapshot([entity('a')], known, new Set(['a', 'c']))).toEqual({
+    expect(mergeSnapshot(known, { entities: [entity('a')], heardDuring: new Set(['a', 'c']) })).toEqual({
       a: entity('a', 'Ada'),
       c: entity('c'),
     });

@@ -1,4 +1,4 @@
-import { TRAIL_LENGTH, extendTrail, footsteps } from '../src/trails';
+import { TRAIL_LENGTH, extendTrail, footsteps } from './trails';
 
 describe('extendTrail', () => {
   it('starts a trail with the first position', () => {

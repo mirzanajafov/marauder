@@ -30,16 +30,16 @@ async function send(path: string, { method = 'GET', body, token }: RequestOption
     body: body === undefined ? undefined : JSON.stringify(body),
   });
   if (!res.ok) {
-    throw new ApiError(res.status, await errorMessage(res));
+    throw new ApiError(res.status, await responseMessage(res));
   }
   return res;
 }
 
-export function describeError(error: unknown): string {
+export function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
-async function errorMessage(res: Response): Promise<string> {
+async function responseMessage(res: Response): Promise<string> {
   const body: unknown = await res.json().catch(() => null);
   if (typeof body === 'object' && body !== null && 'message' in body) {
     const { message } = body;

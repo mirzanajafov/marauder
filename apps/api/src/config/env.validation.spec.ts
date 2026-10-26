@@ -68,6 +68,11 @@ describe('validateEnv', () => {
     expect(() => validateEnv({ ...required, POSITION_FLUSH_MS: '3000000000' })).toThrow('POSITION_FLUSH_MS');
   });
 
+  it('refuses a position flush so slow that the web would drop live tags between two batches', () => {
+    expect(validateEnv({ ...required, POSITION_FLUSH_MS: '2000' }).POSITION_FLUSH_MS).toBe(2_000);
+    expect(() => validateEnv({ ...required, POSITION_FLUSH_MS: '2001' })).toThrow('POSITION_FLUSH_MS');
+  });
+
   it('rejects a connection URL with the wrong scheme and an origin with a path', () => {
     expect(() => validateEnv({ ...required, REDIS_URL: 'localhost:6379' })).toThrow('REDIS_URL');
     expect(() => validateEnv({ ...required, MQTT_URL: 'http://localhost:1883' })).toThrow('MQTT_URL');

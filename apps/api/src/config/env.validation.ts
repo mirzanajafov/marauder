@@ -1,7 +1,7 @@
 import { Type } from 'class-transformer';
 import { IsInt, Matches, Max, Min, MinLength, ValidateBy } from 'class-validator';
 import { MQTT_URL_PATTERN, validateEnvironment } from '@marauder/env';
-import { DEFAULT_PATH_LOSS_EXPONENT } from '@marauder/shared';
+import { DEFAULT_PATH_LOSS_EXPONENT, MAX_POSITION_FLUSH_MS } from '@marauder/shared';
 
 export const DEFAULT_POSITION_FLUSH_MS = 150;
 
@@ -57,7 +57,7 @@ export class EnvironmentVariables {
   @Type(() => Number)
   @IsInt()
   @Min(10)
-  @Max(10_000)
+  @Max(MAX_POSITION_FLUSH_MS)
   POSITION_FLUSH_MS = DEFAULT_POSITION_FLUSH_MS;
 }
 

@@ -1,6 +1,6 @@
 import { HistoryPoint, MAX_HISTORY_BUCKETS, MAX_HISTORY_BUCKET_MS, MIN_HISTORY_BUCKET_MS } from '@marauder/shared';
-import { WINDOWS, bucketFor, buildFrames } from '../src/history';
-import { TrailPoint, extendTrail } from '../src/trails';
+import { WINDOWS, bucketFor, buildFrames } from './history';
+import { TrailPoint, extendTrail } from './trails';
 
 function point(entityId: string, time: number, x: number): HistoryPoint {
   return { entityId, time, x, y: 0, accuracy: 1, name: entityId, status: 'tagged' };

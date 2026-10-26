@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { memo, useState } from 'react';
 import { Entity } from '@marauder/shared';
 import { tagEntity } from './api';
 import { useAction } from './session';
@@ -8,7 +8,7 @@ interface Props {
   onTagged: (entity: Entity) => void;
 }
 
-export function RosterPanel({ entities, onTagged }: Props) {
+export const RosterPanel = memo(function RosterPanel({ entities, onTagged }: Props) {
   const unknown = entities.filter((e) => e.status === 'unknown');
   const tagged = entities.filter((e) => e.status === 'tagged');
 
@@ -33,7 +33,7 @@ export function RosterPanel({ entities, onTagged }: Props) {
       </section>
     </aside>
   );
-}
+});
 
 function TagRow({ entity, onTagged }: { entity: Entity; onTagged: (entity: Entity) => void }) {
   const [name, setName] = useState('');
