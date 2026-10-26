@@ -15,7 +15,7 @@ export function seededRandom(seed: number): Random {
   };
 }
 
-export function gaussian(random: Random, sd: number): number {
+function gaussian(random: Random, sd: number): number {
   const u = 1 - random();
   const v = random();
   return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v) * sd;
@@ -71,7 +71,7 @@ export interface World {
   signals(): SignalPayload[];
 }
 
-export function createWorld(options: WorldOptions): World {
+function createWorld(options: WorldOptions): World {
   const { scene, random } = options;
   const nodeById = new Map<string, NavNode>(scene.nodes.map((n) => [n.id, n]));
   const adjacency = new Map<string, string[]>();
