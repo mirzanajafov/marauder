@@ -6,7 +6,7 @@ import {
   Entity,
   PositionUpdate,
   PositionsBatchEvent,
-  RawSignal,
+  SignalPayload,
   Receiver,
   WsEvents,
 } from '@marauder/shared';
@@ -63,8 +63,8 @@ export class PositionService implements OnModuleInit, OnModuleDestroy {
     await this.layoutReload;
   }
 
-  record(entity: Entity, signal: RawSignal): void {
-    this.tracker.record(entity, signal);
+  record(entity: Entity, signal: SignalPayload): void {
+    this.tracker.record(entity, { ...signal, ts: Date.now() });
   }
 
   @OnEvent(RECEIVERS_CHANGED)

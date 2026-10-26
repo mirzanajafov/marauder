@@ -1,4 +1,4 @@
-import { World, signalTopic, tickMs } from '@marauder/shared';
+import { SignalPayload, World, signalTopic, tickMs } from '@marauder/shared';
 
 export interface SimulatorClient {
   readonly connected: boolean;
@@ -17,8 +17,9 @@ export function startSimulation(client: SimulatorClient, world: World, hz: numbe
     if (!client.connected) {
       return;
     }
-    for (const signal of world.signals(now)) {
-      client.publish(signalTopic(signal.receiverId), JSON.stringify(signal));
+    for (const { fingerprint, receiverId, rssi, txPower } of world.signals(now)) {
+      const payload: SignalPayload = { fingerprint, receiverId, rssi, txPower };
+      client.publish(signalTopic(receiverId), JSON.stringify(payload));
     }
   }, intervalMs);
 }
