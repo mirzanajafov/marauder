@@ -54,14 +54,6 @@ describe('Tracker', () => {
     expect(solve.mock.lastCall?.[0]).toMatchObject([{ distance: rssiToDistance(-60, TX_POWER, EXPONENT) }]);
   });
 
-  it('takes the name from a reading that arrived out of order, whose entity was looked up last', () => {
-    const { tracker } = trackerWith();
-    tracker.record(ada, signal('R1', -60, T0 + 100));
-    tracker.record({ ...ada, name: 'Ada', status: 'tagged' }, signal('R1', -90, T0));
-
-    expect(tracker.advance(T0 + 150, layout)).toMatchObject([{ name: 'Ada', status: 'tagged' }]);
-  });
-
   it('moves the reported position only part of the way towards each new estimate', () => {
     const { tracker } = trackerWith([
       { x: 10, y: 0, accuracy: 1 },
@@ -100,13 +92,22 @@ describe('Tracker', () => {
     expect(solve).toHaveBeenCalledTimes(2);
   });
 
-  it('reports the latest name and status it has heard for each tag', () => {
+  it('takes a new name and status from an entity update', () => {
     const { tracker } = trackerWith();
     tracker.record(ada, signal('R1', -60, T0));
-    tracker.record({ ...ada, name: 'Ada', kind: 'person', status: 'tagged' }, signal('R2', -60, T0 + 10));
+    tracker.updateEntity({ ...ada, name: 'Ada', kind: 'person', status: 'tagged' });
 
     expect(tracker.advance(T0 + 150, layout)).toMatchObject([
       { entityId: 'e1', name: 'Ada', kind: 'person', status: 'tagged', ts: T0 + 150 },
     ]);
+  });
+
+  it('keeps the name it has over the entity a later reading carries, which can come from an older lookup', () => {
+    const { tracker } = trackerWith();
+    tracker.record(ada, signal('R1', -60, T0));
+    tracker.updateEntity({ ...ada, name: 'Ada', status: 'tagged' });
+    tracker.record(ada, signal('R2', -60, T0 + 10));
+
+    expect(tracker.advance(T0 + 150, layout)).toMatchObject([{ name: 'Ada', status: 'tagged' }]);
   });
 });

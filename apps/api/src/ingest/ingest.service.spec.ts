@@ -86,13 +86,15 @@ describe('IngestService', () => {
     expect(record.mock.lastCall).toEqual([entity, { ...signal, ts: 1_000 }]);
   });
 
-  it('ignores a retained signal, which the broker replays on every subscribe however old it is', async () => {
+  it('rejects a retained signal, which the broker replays on every subscribe however old it is', async () => {
     const { resolve, record } = await ingest();
+    const logError = jest.spyOn(Logger.prototype, 'error').mockImplementation(() => undefined);
 
     await deliver(JSON.stringify(signal), true);
 
     expect(resolve).not.toHaveBeenCalled();
     expect(record).not.toHaveBeenCalled();
+    expect(logError).toHaveBeenCalledWith('signals rejected so far: 1, the latest on "sensors/R1/signals"');
   });
 
   it('counts a rejected payload in its own log line, naming the latest topic, and resolves nothing', async () => {

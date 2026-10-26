@@ -36,9 +36,7 @@ export class IngestService implements OnModuleInit, OnModuleDestroy {
       });
     });
     client.on('message', (topic, payload, packet) => {
-      if (!packet.retain) {
-        void this.handle(topic, payload);
-      }
+      void this.handle(topic, payload, packet.retain);
     });
     client.on('error', (error) => this.logger.error(error.message));
   }
@@ -47,9 +45,9 @@ export class IngestService implements OnModuleInit, OnModuleDestroy {
     this.client?.end(true);
   }
 
-  private async handle(topic: string, payload: Buffer): Promise<void> {
+  private async handle(topic: string, payload: Buffer, retained: boolean): Promise<void> {
     const receivedAt = Date.now();
-    const signal = parseSignal(payload);
+    const signal = retained ? null : parseSignal(payload);
     if (!signal) {
       this.rejectedSignals.failure(
         (rejected) => `signals rejected so far: ${rejected}, the latest on ${JSON.stringify(topic)}`,

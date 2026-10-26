@@ -49,9 +49,6 @@ export class Tracker {
       };
       this.tracks.set(entity.id, track);
     }
-    track.name = entity.name;
-    track.kind = entity.kind;
-    track.status = entity.status;
     const previous = track.readings.get(signal.receiverId);
     if (previous && signal.ts < previous.ts) {
       return;
@@ -69,6 +66,15 @@ export class Tracker {
       weight: 1 / (distance * distance + 1),
       ts: signal.ts,
     });
+  }
+
+  updateEntity(entity: TrackedEntity): void {
+    const track = this.tracks.get(entity.id);
+    if (track) {
+      track.name = entity.name;
+      track.kind = entity.kind;
+      track.status = entity.status;
+    }
   }
 
   advance(now: number, receivers: Map<string, Receiver>): PositionUpdate[] {

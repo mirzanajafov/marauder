@@ -4,6 +4,7 @@ import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
 import {
   DEFAULT_FLOORPLAN,
   Entity,
+  EntityUpdatedEvent,
   PositionUpdate,
   PositionsBatchEvent,
   ReceivedSignal,
@@ -65,6 +66,11 @@ export class PositionService implements OnModuleInit, OnModuleDestroy {
 
   record(entity: Entity, signal: ReceivedSignal): void {
     this.tracker.record(entity, signal);
+  }
+
+  @OnEvent(WsEvents.EntityUpdated)
+  updateEntity({ entity }: EntityUpdatedEvent): void {
+    this.tracker.updateEntity(entity);
   }
 
   @OnEvent(RECEIVERS_CHANGED)

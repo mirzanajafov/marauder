@@ -114,6 +114,17 @@ describe('PositionService', () => {
     expect(createMany).toHaveBeenCalledTimes(1);
   });
 
+  it('shows a new name on the next batch once the tag is renamed', async () => {
+    const corner = receiver('R1', 0, 0);
+    const { service, emit } = await positionService({ receivers: [corner] });
+    hear(service, corner, -70);
+
+    service.updateEntity({ entity: { ...lin, name: 'Lin Ward' } });
+    await jest.advanceTimersByTimeAsync(FLUSH_MS);
+
+    expect(lastBatch(emit)).toMatchObject([{ entityId: 'e1', name: 'Lin Ward' }]);
+  });
+
   it('stops placing a tag once its readings go stale', async () => {
     const corner = receiver('R1', 0, 0);
     const { service, emit } = await positionService({ receivers: [corner] });
