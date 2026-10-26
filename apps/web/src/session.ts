@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { ApiError, checkSession, errorMessage, login as requestToken, logout as revokeToken } from './api';
 
 const STORAGE_KEY = 'marauder_token';
@@ -25,43 +25,53 @@ function storeToken(token: string | null): void {
 
 export interface Session {
   token: string | null;
-  expired: () => void;
+  expired: (token: string) => void;
 }
 
 export const SessionContext = createContext<Session>({ token: null, expired: () => undefined });
 
 export function useAuth() {
-  const [token, setToken] = useState<string | null>(readStoredToken);
+  const [token, setTokenState] = useState<string | null>(readStoredToken);
+  const currentToken = useRef(token);
   const [notice, setNotice] = useState<string | null>(null);
   const [loggingOut, setLoggingOut] = useState(false);
 
-  const signOut = useCallback((reason: string | null) => {
-    storeToken(null);
-    setToken(null);
-    setNotice(reason);
+  const setToken = useCallback((next: string | null) => {
+    currentToken.current = next;
+    storeToken(next);
+    setTokenState(next);
   }, []);
 
-  const expired = useCallback(() => signOut('your session ended, log in again'), [signOut]);
+  const signOut = useCallback(
+    (reason: string | null) => {
+      setToken(null);
+      setNotice(reason);
+    },
+    [setToken],
+  );
+
+  const expired = useCallback(
+    (failed: string) => {
+      if (failed === currentToken.current) {
+        signOut('your session ended, log in again');
+      }
+    },
+    [signOut],
+  );
 
   useEffect(() => {
     if (token === null) {
       return;
     }
-    let current = true;
     checkSession(token).catch((error: unknown) => {
-      if (current && error instanceof ApiError && error.status === 401) {
-        expired();
+      if (error instanceof ApiError && error.status === 401) {
+        expired(token);
       }
     });
-    return () => {
-      current = false;
-    };
   }, [token, expired]);
 
   const login = async (password: string): Promise<void> => {
-    const next = await requestToken(password);
-    storeToken(next);
-    setToken(next);
+    setToken(await requestToken(password));
     setNotice(null);
   };
 
@@ -104,7 +114,7 @@ export function useAction() {
       return true;
     } catch (failure) {
       if (failure instanceof ApiError && failure.status === 401) {
-        expired();
+        expired(token);
       } else {
         setError(errorMessage(failure));
       }
