@@ -32,15 +32,25 @@ settings_accepted() {
 }
 
 query() {
-  "${compose[@]}" exec -T timescaledb psql -U marauder -d marauder -tA -v ON_ERROR_STOP=1 -c "$1"
+  "${compose[@]}" exec -T timescaledb psql -U marauder -d marauder -tA -c "$1"
 }
 
-started_migrations() {
-  query "SELECT count(*) FROM _prisma_migrations"
+migration_rows() {
+  local tracked
+  tracked=$(query "SELECT to_regclass('public._prisma_migrations') IS NOT NULL") || return 1
+  if [ "$tracked" = t ]; then
+    query "SELECT migration_name || ' ' || CASE WHEN rolled_back_at IS NOT NULL THEN 'rolled-back'
+      WHEN finished_at IS NOT NULL THEN 'applied' ELSE 'failed' END FROM _prisma_migrations"
+  fi
+}
+
+count_rows() {
+  printf '%s\n' "$1" | awk 'NF { n++ } END { print n + 0 }'
 }
 
 start() {
-  "${compose[@]}" up -d --wait --wait-timeout 300 --remove-orphans
+  "${compose[@]}" up -d --wait --wait-timeout 300 --remove-orphans &&
+    "${compose[@]}" exec -T web wget -q -T 5 -O /dev/null http://127.0.0.1/api/health
 }
 
 release() {
@@ -50,20 +60,25 @@ release() {
     "${compose[@]}" run --rm --no-deps api ./node_modules/.bin/prisma migrate deploy ||
       { say "the migration failed"; return 1; }
   fi
-  start || { say "not every service came up healthy"; return 1; }
+  start || { say "not every service came up healthy, or the site can't reach the api"; return 1; }
 }
 
 give_up() {
-  say "$1, so the running app was left as it was"
+  say "$1, so the release stops before the app restarts"
   git reset --hard --quiet "$previous"
   restore_running_images
-  "${compose[@]}" up -d timescaledb
+  "${compose[@]}" up -d --wait timescaledb ||
+    say "the database did not come back healthy, look at: ${compose[*]} logs timescaledb"
   exit 1
 }
 
 roll_back() {
   if [ "$migrating" = yes ]; then
-    started_after=$(started_migrations) || started_after=unknown
+    if rows_after=$(migration_rows); then
+      started_after=$(count_rows "$rows_after")
+    else
+      started_after=unknown
+    fi
     if [ "$started_after" != "$started_before" ]; then
       say "$1, after it started migrating the database, which the code it replaced may not read"
       say "check prisma migrate status, then fix forward or restore the predeploy dump from the backups volume as the README describes"
@@ -112,19 +127,12 @@ say "checking the new release against deploy/.env before anything restarts"
 settings_accepted || give_up "the new release refuses the settings named above"
 
 "${compose[@]}" up -d --wait timescaledb || give_up "the database did not come up healthy"
-shipped=$("${compose[@]}" run --rm --no-deps api ls -1 prisma/migrations | grep -vx migration_lock.toml | LC_ALL=C sort) ||
-  give_up "could not list the migrations in the new release"
-tracked=$(query "SELECT to_regclass('public._prisma_migrations') IS NOT NULL") || give_up "could not read the database"
-applied=""
-started_before=0
-if [ "$tracked" = t ]; then
-  applied=$(query "SELECT migration_name FROM _prisma_migrations WHERE finished_at IS NOT NULL AND rolled_back_at IS NULL" |
-    LC_ALL=C sort) || give_up "could not read the applied migrations"
-  failed=$(query "SELECT migration_name FROM _prisma_migrations WHERE finished_at IS NULL AND rolled_back_at IS NULL") ||
-    give_up "could not read the failed migrations"
-  [ -z "$failed" ] || give_up "migration $failed is recorded as failed, resolve it with prisma migrate resolve first"
-  started_before=$(started_migrations) || give_up "could not count the migrations"
-fi
+shipped=$(find ../apps/api/prisma/migrations -mindepth 1 -maxdepth 1 -type d -printf '%f\n' | LC_ALL=C sort)
+rows=$(migration_rows) || give_up "could not read the migrations in the database"
+applied=$(printf '%s\n' "$rows" | awk '$2 == "applied" { print $1 }' | LC_ALL=C sort)
+failed=$(printf '%s\n' "$rows" | awk '$2 == "failed" { print $1 }')
+started_before=$(count_rows "$rows")
+[ -z "$failed" ] || give_up "migration $failed is recorded as failed, resolve it with prisma migrate resolve first"
 unknown=$(comm -13 <(printf '%s\n' "$shipped") <(printf '%s\n' "$applied"))
 [ -z "$unknown" ] || give_up "the database has migrations this release does not ship: $unknown"
 pending=$(comm -23 <(printf '%s\n' "$shipped") <(printf '%s\n' "$applied"))

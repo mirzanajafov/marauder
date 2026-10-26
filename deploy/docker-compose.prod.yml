@@ -53,11 +53,7 @@ services:
       API_PREFIX: api
       TRUST_PROXY_HOPS: 2
     healthcheck:
-      test:
-        - CMD
-        - node
-        - -e
-        - "fetch('http://localhost:3001/api/health', { signal: AbortSignal.timeout(4000) }).then((r) => process.exit(r.ok ? 0 : 1), () => process.exit(1))"
+      test: ['CMD', 'wget', '-q', '-T', '4', '-O', '/dev/null', 'http://127.0.0.1:3001/api/health']
       interval: 10s
       timeout: 5s
       retries: 3
@@ -82,7 +78,7 @@ services:
     container_name: marauder-web
     restart: unless-stopped
     healthcheck:
-      test: ['CMD', 'wget', '-q', '-T', '4', '-O', '/dev/null', 'http://127.0.0.1/api/health']
+      test: ['CMD', 'wget', '-q', '-T', '4', '-O', '/dev/null', 'http://127.0.0.1/']
       interval: 10s
       timeout: 5s
       retries: 3
