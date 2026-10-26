@@ -6,7 +6,7 @@ async function main() {
   for (const r of DEFAULT_RECEIVERS) {
     await prisma.receiver.upsert({
       where: { id: r.id },
-      update: { name: r.name, x: r.x, y: r.y, floor: r.floor },
+      update: {},
       create: r,
     });
   }
