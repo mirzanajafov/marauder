@@ -24,9 +24,7 @@ describe('API (e2e)', () => {
     app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
     await app.init();
     prisma = app.get(PrismaService);
-    const row = await prisma.entity.create({
-      data: { id: randomUUID(), fingerprint, status: 'unknown' },
-    });
+    const row = await prisma.entity.create({ data: { fingerprint } });
     entityId = row.id;
     const password = app.get(ConfigService).getOrThrow<string>('ADMIN_PASSWORD');
     const login = await request(app.getHttpServer()).post('/auth/login').send({ password }).expect(201);
@@ -93,6 +91,30 @@ describe('API (e2e)', () => {
   it('returns history points as an array', async () => {
     const res = await request(app.getHttpServer()).get('/history?bucketMs=1000').expect(200);
     expect(Array.isArray(res.body)).toBe(true);
+  });
+
+  it('averages the positions in each bucket and adds the name and status of the entity', async () => {
+    const bucket = Math.floor(Date.now() / 1000) * 1000 - 60_000;
+    const ada = await prisma.entity.create({
+      data: { fingerprint: `e2e-history-${randomUUID()}`, name: 'Ada', status: 'tagged' },
+    });
+    try {
+      await prisma.position.createMany({
+        data: [
+          { time: new Date(bucket + 250), entityId: ada.id, x: 2, y: 4, accuracy: 1 },
+          { time: new Date(bucket + 750), entityId: ada.id, x: 4, y: 6, accuracy: 3 },
+        ],
+      });
+      const from = new Date(bucket).toISOString();
+      const to = new Date(bucket + 999).toISOString();
+      await request(app.getHttpServer())
+        .get(`/history?from=${from}&to=${to}&bucketMs=1000`)
+        .expect(200)
+        .expect([{ entityId: ada.id, x: 3, y: 5, accuracy: 2, time: bucket, name: 'Ada', status: 'tagged' }]);
+    } finally {
+      await prisma.position.deleteMany({ where: { entityId: ada.id } });
+      await prisma.entity.delete({ where: { id: ada.id } });
+    }
   });
 
   it('refuses a window that would need more than two thousand buckets', async () => {
@@ -211,6 +233,17 @@ describe('API (e2e)', () => {
       .set('Authorization', auth())
       .send({ name: 'Nobody' })
       .expect(404);
+  });
+
+  it('gives a first sighting a v4 uuid and the unknown status', async () => {
+    const fingerprint = `e2e-first-${randomUUID()}`;
+    try {
+      const entity = await app.get(ResolutionService).resolve(fingerprint);
+      expect(entity.id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
+      expect(entity).toMatchObject({ fingerprint, status: 'unknown', name: null, kind: null });
+    } finally {
+      await prisma.entity.deleteMany({ where: { fingerprint } });
+    }
   });
 
   it('creates one entity and announces it once when four first sightings of a fingerprint race', async () => {

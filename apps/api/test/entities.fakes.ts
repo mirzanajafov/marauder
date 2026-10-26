@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Test } from '@nestjs/testing';
 import { Entity as EntityRow, Prisma } from '@prisma/client';
@@ -42,14 +43,14 @@ class FakeEntityTable {
   });
 
   readonly createManyAndReturn = jest.fn(
-    ({ data, skipDuplicates }: { data: { id: string; fingerprint: string }[]; skipDuplicates: boolean }) => {
+    ({ data, skipDuplicates }: { data: { fingerprint: string }[]; skipDuplicates: boolean }) => {
       const fresh = data.filter(({ fingerprint }) => !this.find({ fingerprint }));
       if (fresh.length < data.length && !skipDuplicates) {
         return Promise.reject(prismaError('P2002', 'Unique constraint failed on the fields: (`fingerprint`)'));
       }
       const now = new Date();
-      const inserted: EntityRow[] = fresh.map(({ id, fingerprint }) => ({
-        id,
+      const inserted: EntityRow[] = fresh.map(({ fingerprint }) => ({
+        id: randomUUID(),
         fingerprint,
         name: null,
         kind: null,

@@ -7,14 +7,21 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum EntityStatus {
+  unknown
+  tagged
+
+  @@map("entity_status")
+}
+
 model Entity {
-  id          String   @id @default(cuid())
-  fingerprint String   @unique
+  id          String       @id @default(uuid())
+  fingerprint String       @unique
   name        String?
   kind        String?
-  status      String   @default("unknown")
-  firstSeen   DateTime @default(now()) @map("first_seen")
-  lastSeen    DateTime @default(now()) @map("last_seen")
+  status      EntityStatus @default(unknown)
+  firstSeen   DateTime     @default(now()) @map("first_seen")
+  lastSeen    DateTime     @default(now()) @map("last_seen")
 
   @@map("entities")
 }

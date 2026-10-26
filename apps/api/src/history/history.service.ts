@@ -1,6 +1,6 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
-import { EntityStatus, HistoryPoint, HistorySummary } from '@marauder/shared';
+import { Entity as EntityRow, Prisma } from '@prisma/client';
+import { HistoryPoint, HistorySummary } from '@marauder/shared';
 import { PrismaService } from '../prisma/prisma.service';
 import { HistoryQueryDto } from './dto/history-query.dto';
 
@@ -16,7 +16,7 @@ interface PointRow {
   y: number;
   accuracy: number;
   name: string | null;
-  status: EntityStatus;
+  status: EntityRow['status'];
 }
 
 const MAX_BUCKETS = 2_000;

@@ -1,7 +1,6 @@
-import { randomUUID } from 'node:crypto';
 import { Injectable } from '@nestjs/common';
 import { Entity as EntityRow } from '@prisma/client';
-import { Entity, EntityStatus, TagEntityInput } from '@marauder/shared';
+import { Entity, TagEntityInput } from '@marauder/shared';
 import { PrismaService } from '../prisma/prisma.service';
 import { RedisService } from '../redis/redis.service';
 
@@ -11,7 +10,7 @@ function toEntity(row: EntityRow): Entity {
     fingerprint: row.fingerprint,
     name: row.name,
     kind: row.kind,
-    status: row.status as EntityStatus,
+    status: row.status,
     firstSeen: row.firstSeen.getTime(),
     lastSeen: row.lastSeen.getTime(),
   };
@@ -55,10 +54,7 @@ export class EntityStore {
   }
 
   async createUnknown(fingerprint: string): Promise<{ entity: Entity; created: boolean }> {
-    const inserted = await this.prisma.entity.createManyAndReturn({
-      data: [{ id: randomUUID(), fingerprint }],
-      skipDuplicates: true,
-    });
+    const inserted = await this.prisma.entity.createManyAndReturn({ data: [{ fingerprint }], skipDuplicates: true });
     const insertedRow = inserted.at(0);
     if (insertedRow) {
       return { entity: toEntity(insertedRow), created: true };

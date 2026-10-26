@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { EntityStatus, FloorPlan, HistoryPoint, PositionUpdate, Receiver, Wall } from '@marauder/shared';
+import { FloorPlan, HistoryPoint, PositionUpdate, Receiver, Wall } from '@marauder/shared';
 import { fetchHistory, fetchHistorySummary } from './api';
 import { FloorMap } from './FloorMap';
 
@@ -83,7 +83,7 @@ export function HistoryView({ receivers, floor, walls }: Props) {
           accuracy: p.accuracy,
           ts: t,
           name: p.name,
-          status: p.status as EntityStatus,
+          status: p.status,
           kind: null,
         };
       }
