@@ -3,7 +3,6 @@ import {
   DEFAULT_PATH_LOSS_EXPONENT,
   DEFAULT_RECEIVERS,
   DEFAULT_TX_POWER,
-  Entity,
   FloorPlan,
   PositionUpdate,
   PositionsBatchEvent,
@@ -19,19 +18,12 @@ import { FloorPlanService } from '../floorplan/floorplan.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { ReceiversService } from '../receivers/receivers.service';
 import { LAYOUT_RELOAD_MS, PositionService } from './position.service';
+import { STALE_READING_MS } from './tracker';
 
 const FLUSH_MS = DEFAULT_POSITION_FLUSH_MS;
 const TUNING = { POSITION_FLUSH_MS: FLUSH_MS, PATH_LOSS_EXPONENT: DEFAULT_PATH_LOSS_EXPONENT };
 
-const lin: Entity = {
-  id: 'e1',
-  fingerprint: 'tag-01',
-  name: 'Lin',
-  kind: 'person',
-  status: 'tagged',
-  firstSeen: 0,
-  lastSeen: 0,
-};
+const lin = { id: 'e1', fingerprint: 'tag-01' };
 
 function receiver(id: string, x: number, y: number): Receiver {
   return { id, name: id, x, y, floor: 0 };
@@ -75,8 +67,14 @@ function lastBatch(emit: jest.Mock<boolean, [string, PositionsBatchEvent]>): Pos
   return call?.[1].positions ?? [];
 }
 
-function hear(service: PositionService, receiver: Receiver, rssi: number, ts = Date.now()): void {
-  service.record(lin, { fingerprint: lin.fingerprint, receiverId: receiver.id, rssi, txPower: DEFAULT_TX_POWER, ts });
+function hear(service: PositionService, receiver: Receiver, rssi: number): void {
+  service.record(lin.id, {
+    fingerprint: lin.fingerprint,
+    receiverId: receiver.id,
+    rssi,
+    txPower: DEFAULT_TX_POWER,
+    ts: Date.now(),
+  });
 }
 
 describe('PositionService', () => {
@@ -101,19 +99,22 @@ describe('PositionService', () => {
     expect(emit).toHaveBeenCalledTimes(1);
     const batch = lastBatch(emit);
     expect(batch).toHaveLength(1);
-    expect(batch[0]).toMatchObject({ entityId: 'e1', name: 'Lin', status: 'tagged' });
+    expect(batch[0]?.entityId).toBe('e1');
     expect(batch[0]?.x).toBeCloseTo(15, 0);
     expect(batch[0]?.y).toBeCloseTo(9, 0);
     expect(createMany).toHaveBeenCalledTimes(1);
   });
 
-  it('does not place a tag from a reading that is too old', async () => {
+  it('stops placing a tag once its readings go stale', async () => {
     const corner = receiver('R1', 0, 0);
     const { service, emit } = await positionService({ receivers: [corner] });
-    hear(service, corner, -70, Date.now() - 60_000);
-
+    hear(service, corner, -70);
     await jest.advanceTimersByTimeAsync(FLUSH_MS);
+    expect(emit).toHaveBeenCalledTimes(1);
 
+    await jest.advanceTimersByTimeAsync(STALE_READING_MS);
+    emit.mockClear();
+    await jest.advanceTimersByTimeAsync(FLUSH_MS);
     expect(emit).not.toHaveBeenCalled();
   });
 

@@ -3,10 +3,9 @@ import { ConfigService } from '@nestjs/config';
 import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
 import {
   DEFAULT_FLOORPLAN,
-  Entity,
   PositionUpdate,
   PositionsBatchEvent,
-  RawSignal,
+  ReceivedSignal,
   Receiver,
   WsEvents,
 } from '@marauder/shared';
@@ -63,8 +62,8 @@ export class PositionService implements OnModuleInit, OnModuleDestroy {
     await this.layoutReload;
   }
 
-  record(entity: Entity, signal: RawSignal): void {
-    this.tracker.record(entity, signal);
+  record(entityId: string, signal: ReceivedSignal): void {
+    this.tracker.record(entityId, signal);
   }
 
   @OnEvent(RECEIVERS_CHANGED)

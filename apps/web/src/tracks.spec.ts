@@ -1,8 +1,8 @@
-import { MAX_POSITION_FLUSH_MS, PositionUpdate } from '@marauder/shared';
-import { QUIET_TRACK_MS, applyPositions, dropQuietTracks } from './tracks';
+import { Entity, MAX_POSITION_FLUSH_MS, PositionUpdate } from '@marauder/shared';
+import { QUIET_TRACK_MS, applyPositions, dropQuietTracks, toMarkers } from './tracks';
 
 function position(entityId: string, x: number): PositionUpdate {
-  return { entityId, x, y: 0, accuracy: 1, ts: 0, name: null, status: 'unknown', kind: null };
+  return { entityId, x, y: 0, accuracy: 1, ts: 0 };
 }
 
 describe('live tracks', () => {
@@ -37,5 +37,23 @@ describe('live tracks', () => {
     const tracks = applyPositions({}, [position('a', 0)], 0);
 
     expect(dropQuietTracks(tracks, QUIET_TRACK_MS)).toBe(tracks);
+  });
+
+  it('labels each marker with the name the entity list has now, and as Unknown before it has the tag', () => {
+    const tracks = applyPositions({}, [position('a', 1), position('b', 2)], 0);
+    const ada: Entity = {
+      id: 'a',
+      fingerprint: 'fp-a',
+      name: 'Ada',
+      kind: null,
+      status: 'tagged',
+      firstSeen: 0,
+      lastSeen: 0,
+    };
+
+    expect(toMarkers(tracks, { a: ada }).map((marker) => [marker.id, marker.label])).toEqual([
+      ['a', 'Ada'],
+      ['b', 'Unknown'],
+    ]);
   });
 });

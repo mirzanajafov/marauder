@@ -1,6 +1,6 @@
-import { DEFAULT_PATH_LOSS_EXPONENT, DEFAULT_TX_POWER } from './radio';
+import { DEFAULT_PATH_LOSS_EXPONENT, DEFAULT_TX_POWER, isReportableDbm } from './radio';
 import { DEFAULT_RECEIVERS, DEFAULT_SCENE, FloorScene, NavNode } from './scene';
-import { RawSignal, Receiver } from './domain';
+import { Receiver, SignalPayload } from './domain';
 
 export type Random = () => number;
 
@@ -68,7 +68,7 @@ export interface World {
   tags: SimTag[];
   rooms: string[];
   advance(dt: number, now: number): void;
-  signals(now: number): RawSignal[];
+  signals(): SignalPayload[];
 }
 
 export function createWorld(options: WorldOptions): World {
@@ -206,8 +206,8 @@ export function createWorld(options: WorldOptions): World {
         step(tag, dt, now);
       }
     },
-    signals(now) {
-      const out: RawSignal[] = [];
+    signals() {
+      const out: SignalPayload[] = [];
       for (const tag of tags) {
         for (const r of options.receivers) {
           if (random() < options.dropProb) {
@@ -219,12 +219,15 @@ export function createWorld(options: WorldOptions): World {
             10 * options.pathLossExponent * Math.log10(d) +
             (bias.get(r.id) ?? 0) +
             gaussian(random, options.noiseDb);
+          const reported = Math.round(rssi * 10) / 10;
+          if (!isReportableDbm(reported)) {
+            continue;
+          }
           out.push({
             fingerprint: tag.fingerprint,
             receiverId: r.id,
-            rssi: Math.round(rssi * 10) / 10,
+            rssi: reported,
             txPower: options.txPower,
-            ts: now,
           });
         }
       }

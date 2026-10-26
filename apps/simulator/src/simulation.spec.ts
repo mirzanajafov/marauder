@@ -40,7 +40,8 @@ describe('startSimulation', () => {
     jest.advanceTimersByTime(1000);
 
     expect(client.publish).toHaveBeenCalledTimes(10 * PER_TICK);
-    expect(client.publish).toHaveBeenCalledWith('sensors/R1/signals', expect.stringContaining('"receiverId":"R1"'));
+    const message = client.publish.mock.calls.find(([topic]) => topic === 'sensors/R1/signals')?.[1];
+    expect(message).toMatch(/^\{"fingerprint":"[^"]+","receiverId":"R1","rssi":-?[\d.]+,"txPower":-?\d+\}$/);
   });
 
   it('keeps one loop at the same rate however often the client reconnects', () => {

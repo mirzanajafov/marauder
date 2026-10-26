@@ -1,10 +1,13 @@
 export type EntityStatus = 'unknown' | 'tagged';
 
-export interface RawSignal {
+export interface SignalPayload {
   fingerprint: string;
   receiverId: string;
   rssi: number;
   txPower: number;
+}
+
+export interface ReceivedSignal extends SignalPayload {
   ts: number;
 }
 
@@ -26,18 +29,12 @@ export interface Entity {
   lastSeen: number;
 }
 
-export interface Position {
+export interface PositionUpdate {
   entityId: string;
   x: number;
   y: number;
   accuracy: number;
   ts: number;
-}
-
-export interface PositionUpdate extends Position {
-  name: string | null;
-  status: EntityStatus;
-  kind: string | null;
 }
 
 export interface TagEntityInput {

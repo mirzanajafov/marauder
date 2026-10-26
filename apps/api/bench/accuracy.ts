@@ -151,10 +151,10 @@ export function measure(scenario: Scenario, list: Variant[], run: Run): Record<s
   while (nextTick <= end || nextFlush <= end) {
     if (nextTick <= nextFlush) {
       world.advance(TICK_MS / 1000, nextTick);
-      for (const signal of world.signals(nextTick)) {
-        const entity = { id: signal.fingerprint, name: signal.fingerprint, kind: 'person', status: 'tagged' as const };
+      for (const signal of world.signals()) {
+        const received = { ...signal, ts: nextTick };
         for (const { tracker } of trackers) {
-          tracker.record(entity, signal);
+          tracker.record(signal.fingerprint, received);
         }
       }
       nextTick += TICK_MS;

@@ -8,7 +8,11 @@ static const char* MQTT_HOST = "192.168.1.10";
 static const uint16_t MQTT_PORT = 1883;
 static const char* RECEIVER_ID = "R1";
 static const char* TAG_PREFIX = "";
-static const int DEFAULT_TX_POWER = -59;
+static const int TX_POWER = -59;
+static const int NO_SIGNAL_DBM = -127;
+static const int HIGHEST_DBM = 20;
+
+static_assert(TX_POWER > NO_SIGNAL_DBM && TX_POWER <= HIGHEST_DBM, "TX_POWER must be above -127 and at most 20 dBm");
 static const int SCAN_SECONDS = 1;
 
 WiFiClient wifiClient;
@@ -45,14 +49,17 @@ class ScanHandler : public NimBLEScanCallbacks {
     if (strlen(TAG_PREFIX) > 0 && name.indexOf(TAG_PREFIX) < 0) {
       return;
     }
+    int rssi = device->getRSSI();
+    if (rssi <= NO_SIGNAL_DBM || rssi > HIGHEST_DBM) {
+      return;
+    }
     String fingerprint = device->getAddress().toString().c_str();
-    int txPower = device->haveTXPower() ? device->getTXPower() : DEFAULT_TX_POWER;
     char topic[64];
     snprintf(topic, sizeof(topic), "sensors/%s/signals", RECEIVER_ID);
     char payload[192];
     snprintf(payload, sizeof(payload),
       "{\"fingerprint\":\"%s\",\"receiverId\":\"%s\",\"rssi\":%d,\"txPower\":%d}",
-      fingerprint.c_str(), RECEIVER_ID, device->getRSSI(), txPower);
+      fingerprint.c_str(), RECEIVER_ID, rssi, TX_POWER);
     mqtt.publish(topic, payload);
   }
 };
