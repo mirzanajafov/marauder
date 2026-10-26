@@ -10,6 +10,8 @@ MQTT_PORT = int(os.environ.get("MQTT_PORT", "1883"))
 RECEIVER_ID = os.environ.get("RECEIVER_ID", "R1")
 TAG_PREFIX = os.environ.get("TAG_PREFIX", "")
 DEFAULT_TX_POWER = int(os.environ.get("TX_POWER", "-59"))
+LOWEST_DBM = -127
+HIGHEST_DBM = 20
 
 client = mqtt.Client()
 client.connect(MQTT_HOST, MQTT_PORT, 60)
@@ -21,7 +23,9 @@ def on_device(device, adv):
     name = adv.local_name or ""
     if TAG_PREFIX and TAG_PREFIX not in name:
         return
-    tx_power = adv.tx_power if adv.tx_power is not None else DEFAULT_TX_POWER
+    advertised = adv.tx_power
+    in_range = advertised is not None and LOWEST_DBM <= advertised <= HIGHEST_DBM
+    tx_power = advertised if in_range else DEFAULT_TX_POWER
     payload = json.dumps(
         {
             "fingerprint": device.address,

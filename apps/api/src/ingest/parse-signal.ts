@@ -1,9 +1,7 @@
-import { RECEIVER_ID_PATTERN, SignalPayload } from '@marauder/shared';
+import { RECEIVER_ID_PATTERN, SignalPayload, isReportableDbm } from '@marauder/shared';
 import { isRecord } from '../common/is-record';
 
 const FINGERPRINT_PATTERN = /^[\w.:-]{1,64}$/;
-const LOWEST_DBM = -127;
-const HIGHEST_DBM = 20;
 
 function readJson(payload: Buffer): unknown {
   try {
@@ -18,7 +16,7 @@ function matches(pattern: RegExp, value: unknown): value is string {
 }
 
 function isDbm(value: unknown): value is number {
-  return typeof value === 'number' && value >= LOWEST_DBM && value <= HIGHEST_DBM;
+  return typeof value === 'number' && isReportableDbm(value);
 }
 
 export function parseSignal(payload: Buffer): SignalPayload | null {

@@ -1,4 +1,4 @@
-import { Entity, PositionUpdate, RawSignal, Receiver } from '@marauder/shared';
+import { Entity, PositionUpdate, ReceivedSignal, Receiver } from '@marauder/shared';
 import { Anchor, Estimate, rssiToDistance } from './position-fit';
 
 interface Reading {
@@ -36,7 +36,7 @@ export class Tracker {
 
   constructor(private readonly options: TrackerOptions) {}
 
-  record(entity: TrackedEntity, signal: RawSignal): void {
+  record(entity: TrackedEntity, signal: ReceivedSignal): void {
     let track = this.tracks.get(entity.id);
     if (!track) {
       track = {
@@ -49,11 +49,14 @@ export class Tracker {
       };
       this.tracks.set(entity.id, track);
     }
+    const previous = track.readings.get(signal.receiverId);
+    if (previous && signal.ts < previous.ts) {
+      return;
+    }
     track.name = entity.name;
     track.kind = entity.kind;
     track.status = entity.status;
     track.lastReadingTs = Math.max(track.lastReadingTs, signal.ts);
-    const previous = track.readings.get(signal.receiverId);
     const beta = this.options.rssiAlpha;
     const rssi =
       previous && signal.ts - previous.ts <= STALE_READING_MS

@@ -18,8 +18,8 @@ each shown by name on the floor plan. The tracked things carry a tag on purpose
 ## How it works
 
 A receiver sees a tag and publishes `{ fingerprint, receiverId, rssi, txPower }` over
-MQTT, and the API stamps each reading with the time it arrives. The API resolves the fingerprint to an entity (creating an "unknown"
-one the first time), estimates a position from the RSSI readings across receivers,
+MQTT, and the API stamps each reading with the time it arrives. The API resolves the
+fingerprint to an entity (creating an "unknown" one the first time), estimates a position from the RSSI readings across receivers,
 and streams batched position updates to the web UI over WebSocket. When a new tag
 appears you tag it with a name once, and after that it is recognized instantly from
 a Redis lookup.
@@ -173,10 +173,11 @@ for a week at half-second resolution. Those two windows take 100 and 160 ms.
 
 The map is fed over MQTT, so any receiver that publishes `sensors/<receiverId>/signals`
 with `{ fingerprint, receiverId, rssi, txPower }` works. Ids are letters, digits, dots,
-colons, dashes and underscores (a receiver id starts with a letter or digit and has at
-most 40 of them, since it ends up in URLs and in the topic), and RSSI and tx power are
-dBm between -127 and 20. Anything else is dropped and counted in the API log. The
-simulator is just one source. Two reference receivers live in `hardware/`:
+colons, dashes and underscores: a fingerprint has at most 64 of them, and a receiver id
+starts with a letter or digit and has at most 40, since it ends up in URLs and in the
+topic. RSSI and tx power are dBm between -127 and 20, so a receiver that gets no tx power
+in that range from a tag sends its default instead, as both reference receivers do.
+Anything else is dropped and counted in the API log. The simulator is just one source. Two reference receivers live in `hardware/`:
 
 - `hardware/esp32-receiver`: an ESP32 sketch (PlatformIO) that BLE-scans and publishes
   RSSI. Set the wifi, MQTT host and `RECEIVER_ID` at the top, flash three boards placed

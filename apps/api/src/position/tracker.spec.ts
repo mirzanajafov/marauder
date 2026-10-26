@@ -1,4 +1,4 @@
-import { RawSignal, Receiver } from '@marauder/shared';
+import { ReceivedSignal, Receiver } from '@marauder/shared';
 import { Anchor, Estimate, rssiToDistance } from './position-fit';
 import { DROP_TRACK_MS, STALE_READING_MS, TrackedEntity, Tracker } from './tracker';
 
@@ -17,7 +17,7 @@ function trackerWith(estimates: Estimate[] = []) {
   return { tracker: new Tracker({ pathLossExponent: EXPONENT, alpha: 0.3, rssiAlpha: 0.2, solve }), solve };
 }
 
-function signal(receiverId: string, rssi: number, ts: number): RawSignal {
+function signal(receiverId: string, rssi: number, ts: number): ReceivedSignal {
   return { fingerprint: 'tag-01', receiverId, rssi, txPower: TX_POWER, ts };
 }
 
@@ -42,6 +42,16 @@ describe('Tracker', () => {
     tracker.advance(T0 + STALE_READING_MS + 2, layout);
 
     expect(solve.mock.lastCall?.[0]).toMatchObject([{ distance: rssiToDistance(-70, TX_POWER, EXPONENT) }]);
+  });
+
+  it('ignores a reading older than the one it already holds for that receiver', () => {
+    const { tracker, solve } = trackerWith();
+    tracker.record(ada, signal('R1', -60, T0 + 100));
+    tracker.record(ada, signal('R1', -90, T0));
+
+    tracker.advance(T0 + 150, layout);
+
+    expect(solve.mock.lastCall?.[0]).toMatchObject([{ distance: rssiToDistance(-60, TX_POWER, EXPONENT) }]);
   });
 
   it('moves the reported position only part of the way towards each new estimate', () => {

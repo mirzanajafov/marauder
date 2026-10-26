@@ -20,7 +20,7 @@ describe('CreateReceiverDto', () => {
     expect(invalidFields({ id })).toEqual([]);
   });
 
-  it.each(['', 'Hall A', 'R1/signals', 'R+', '.', '..', '-R1', 'R'.repeat(41)])(
+  it.each(['', 'Hall A', 'R1/signals', 'R+', '.', '..', '-R1', '_R1', 'R'.repeat(41)])(
     'refuses %p as an id, which has to work in a URL path and an MQTT topic',
     (id) => {
       expect(invalidFields({ id })).toEqual(['id']);

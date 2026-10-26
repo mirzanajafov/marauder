@@ -77,7 +77,13 @@ function lastBatch(emit: jest.Mock<boolean, [string, PositionsBatchEvent]>): Pos
 }
 
 function hear(service: PositionService, receiver: Receiver, rssi: number): void {
-  service.record(lin, { fingerprint: lin.fingerprint, receiverId: receiver.id, rssi, txPower: DEFAULT_TX_POWER });
+  service.record(lin, {
+    fingerprint: lin.fingerprint,
+    receiverId: receiver.id,
+    rssi,
+    txPower: DEFAULT_TX_POWER,
+    ts: Date.now(),
+  });
 }
 
 describe('PositionService', () => {
@@ -108,7 +114,7 @@ describe('PositionService', () => {
     expect(createMany).toHaveBeenCalledTimes(1);
   });
 
-  it('stamps each reading when it arrives, so a quiet tag stops being placed once its readings go stale', async () => {
+  it('stops placing a tag once its readings go stale', async () => {
     const corner = receiver('R1', 0, 0);
     const { service, emit } = await positionService({ receivers: [corner] });
     hear(service, corner, -70);

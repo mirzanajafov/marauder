@@ -1,3 +1,4 @@
+import { HIGHEST_DBM, LOWEST_DBM } from './radio';
 import { DEFAULT_RECEIVERS, DEFAULT_SCENE } from './scene';
 import { DEFAULT_TRAFFIC, createDefaultWorld, seededRandom } from './sim';
 
@@ -30,6 +31,14 @@ describe('simulated world', () => {
     }
     expect(offFloor).toBe(0);
     expect(w.signals(300_000)).toHaveLength(DEFAULT_TRAFFIC.tagCount * DEFAULT_RECEIVERS.length);
+  });
+
+  it('leaves out a reading no radio could report instead of sending it outside the radio range', () => {
+    const w = createDefaultWorld({ dropProb: 0, noiseDb: 40, random: seededRandom(3) });
+    const heard = [0, 1, 2, 3, 4].flatMap((tick) => w.signals(tick * 100));
+
+    expect(heard.length).toBeLessThan(5 * DEFAULT_TRAFFIC.tagCount * DEFAULT_RECEIVERS.length);
+    expect(heard.filter(({ rssi }) => rssi < LOWEST_DBM || rssi > HIGHEST_DBM)).toEqual([]);
   });
 
   it('refuses a scene without rooms to walk between', () => {

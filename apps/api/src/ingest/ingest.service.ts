@@ -46,6 +46,7 @@ export class IngestService implements OnModuleInit, OnModuleDestroy {
   }
 
   private async handle(topic: string, payload: Buffer): Promise<void> {
+    const receivedAt = Date.now();
     const signal = parseSignal(payload);
     if (!signal) {
       this.rejectedSignals.failure(
@@ -55,7 +56,7 @@ export class IngestService implements OnModuleInit, OnModuleDestroy {
     }
     try {
       const entity = await this.resolution.resolve(signal.fingerprint);
-      this.position.record(entity, signal);
+      this.position.record(entity, { ...signal, ts: receivedAt });
     } catch (error) {
       this.failedSignals.failure(
         (failures) => `could not handle a signal (${failures} failed signals so far): ${errorMessage(error)}`,

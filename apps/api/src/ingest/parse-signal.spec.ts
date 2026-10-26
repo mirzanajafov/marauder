@@ -15,21 +15,21 @@ describe('parseSignal', () => {
     expect(parseSignal(payload(sent))).toEqual(sent);
   });
 
-  it('keeps only the fields of the contract, including no time from the device', () => {
-    for (const extra of [{ battery: 12 }, { ts: 1_700_000_000_000 }, { ts: 'yesterday' }, { ts: null }]) {
-      expect(parseSignal(payload({ ...sent, ...extra }))).toEqual(sent);
-    }
+  it.each([
+    ['a field outside the contract', { battery: 12 }],
+    ['a time from the device', { ts: 1_700_000_000_000 }],
+    ['a time that is not a number', { ts: 'yesterday' }],
+  ])('leaves out %s', (_extra, extra) => {
+    expect(parseSignal(payload({ ...sent, ...extra }))).toEqual(sent);
   });
 
-  it('takes ids and readings right at their limits', () => {
-    for (const edge of [
-      { fingerprint: 'f'.repeat(64) },
-      { receiverId: 'R'.repeat(40) },
-      { rssi: -127 },
-      { txPower: 20 },
-    ]) {
-      expect(parseSignal(payload({ ...sent, ...edge }))).toEqual({ ...sent, ...edge });
-    }
+  it.each([
+    ['a fingerprint of 64 characters', { fingerprint: 'f'.repeat(64) }],
+    ['a receiver id of 40 characters', { receiverId: 'R'.repeat(40) }],
+    ['an rssi of -127 dBm', { rssi: -127 }],
+    ['a tx power of 20 dBm', { txPower: 20 }],
+  ])('takes %s', (_edge, edge) => {
+    expect(parseSignal(payload({ ...sent, ...edge }))).toEqual({ ...sent, ...edge });
   });
 
   it.each([
@@ -45,6 +45,7 @@ describe('parseSignal', () => {
     ['a fingerprint with a control character', { ...sent, fingerprint: 'aa\u0000bb' }],
     ['a receiver id with a space', { ...sent, receiverId: 'Hall A' }],
     ['a receiver id that is only dots', { ...sent, receiverId: '..' }],
+    ['a receiver id that starts with an underscore', { ...sent, receiverId: '_R1' }],
     ['a receiver id longer than 40 characters', { ...sent, receiverId: 'R'.repeat(41) }],
     ['an rssi below what a radio reports', { ...sent, rssi: -128 }],
     ['an rssi above what a radio reports', { ...sent, rssi: 21 }],

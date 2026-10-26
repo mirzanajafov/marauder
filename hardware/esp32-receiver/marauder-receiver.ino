@@ -9,6 +9,8 @@ static const uint16_t MQTT_PORT = 1883;
 static const char* RECEIVER_ID = "R1";
 static const char* TAG_PREFIX = "";
 static const int DEFAULT_TX_POWER = -59;
+static const int LOWEST_DBM = -127;
+static const int HIGHEST_DBM = 20;
 static const int SCAN_SECONDS = 1;
 
 WiFiClient wifiClient;
@@ -46,7 +48,10 @@ class ScanHandler : public NimBLEScanCallbacks {
       return;
     }
     String fingerprint = device->getAddress().toString().c_str();
-    int txPower = device->haveTXPower() ? device->getTXPower() : DEFAULT_TX_POWER;
+    int txPower = DEFAULT_TX_POWER;
+    if (device->haveTXPower() && device->getTXPower() >= LOWEST_DBM && device->getTXPower() <= HIGHEST_DBM) {
+      txPower = device->getTXPower();
+    }
     char topic[64];
     snprintf(topic, sizeof(topic), "sensors/%s/signals", RECEIVER_ID);
     char payload[192];

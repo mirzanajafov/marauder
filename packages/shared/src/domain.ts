@@ -7,7 +7,7 @@ export interface SignalPayload {
   txPower: number;
 }
 
-export interface RawSignal extends SignalPayload {
+export interface ReceivedSignal extends SignalPayload {
   ts: number;
 }
 

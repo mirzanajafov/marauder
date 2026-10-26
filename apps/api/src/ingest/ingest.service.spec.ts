@@ -1,5 +1,5 @@
 import { EventEmitter } from 'node:events';
-import { Entity, SignalPayload } from '@marauder/shared';
+import { Entity, ReceivedSignal } from '@marauder/shared';
 import { Logger } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -26,7 +26,7 @@ const opened: TestingModule[] = [];
 
 async function ingest() {
   const resolve = jest.fn<Promise<Entity>, [string]>().mockResolvedValue(entity);
-  const record = jest.fn<undefined, [Entity, SignalPayload]>();
+  const record = jest.fn<undefined, [Entity, ReceivedSignal]>();
   const moduleRef = await Test.createTestingModule({
     imports: [ConfigModule.forRoot({ ignoreEnvFile: true, validate: () => ({ MQTT_URL: 'mqtt://localhost:1883' }) })],
     providers: [
@@ -40,25 +40,50 @@ async function ingest() {
   return { resolve, record };
 }
 
+const signal = { fingerprint: 'aa:bb:cc', receiverId: 'R1', rssi: -67, txPower: -59 };
+
+function settle(): Promise<void> {
+  return new Promise((resolve) => setImmediate(resolve));
+}
+
 async function deliver(message: string): Promise<void> {
   mockBroker.emit('message', TOPIC, Buffer.from(message));
-  await new Promise((resolve) => setImmediate(resolve));
+  await settle();
 }
 
 describe('IngestService', () => {
   afterEach(async () => {
     await Promise.all(opened.splice(0).map((moduleRef) => moduleRef.close()));
     mockBroker.removeAllListeners();
+    jest.restoreAllMocks();
   });
 
   it('resolves a well-formed signal from the broker and hands it to the position service', async () => {
     const { resolve, record } = await ingest();
-    const signal = { fingerprint: 'aa:bb:cc', receiverId: 'R1', rssi: -67, txPower: -59 };
+    jest.spyOn(Date, 'now').mockReturnValue(1_000);
 
     await deliver(JSON.stringify(signal));
 
     expect(resolve).toHaveBeenCalledWith('aa:bb:cc');
-    expect(record.mock.lastCall).toEqual([entity, signal]);
+    expect(record.mock.lastCall).toEqual([entity, { ...signal, ts: 1_000 }]);
+  });
+
+  it('stamps a signal with the time it arrived, however long its entity takes to resolve', async () => {
+    const { resolve, record } = await ingest();
+    let finishLookup: (found: Entity) => void = () => undefined;
+    resolve.mockReturnValueOnce(
+      new Promise((done) => {
+        finishLookup = done;
+      }),
+    );
+    const clock = jest.spyOn(Date, 'now').mockReturnValue(1_000);
+
+    await deliver(JSON.stringify(signal));
+    clock.mockReturnValue(6_000);
+    finishLookup(entity);
+    await settle();
+
+    expect(record.mock.lastCall).toEqual([entity, { ...signal, ts: 1_000 }]);
   });
 
   it('counts a rejected payload in its own log line, naming the latest topic, and resolves nothing', async () => {
