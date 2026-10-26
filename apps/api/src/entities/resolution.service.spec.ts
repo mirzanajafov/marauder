@@ -11,12 +11,11 @@ describe('ResolutionService', () => {
   it('creates an unknown entity on the first sighting and announces it once', async () => {
     const { resolution, table, emit } = await entitiesTestingModule();
 
-    const entity = await resolution.resolve('tag-01');
+    const id = await resolution.resolve('tag-01');
 
-    expect(entity).toMatchObject({ fingerprint: 'tag-01', status: 'unknown', name: null });
-    expect(table.rows).toHaveLength(1);
+    expect(table.rows).toMatchObject([{ id, fingerprint: 'tag-01', status: 'unknown', name: null }]);
     expect(emit).toHaveBeenCalledTimes(1);
-    expect(emit).toHaveBeenCalledWith(WsEvents.EntityDiscovered, { entity });
+    expect(emit.mock.lastCall).toMatchObject([WsEvents.EntityDiscovered, { entity: { id, fingerprint: 'tag-01' } }]);
   });
 
   it('reads the database on the second sighting and the cache from the third on', async () => {
@@ -25,7 +24,7 @@ describe('ResolutionService', () => {
     table.findUnique.mockClear();
 
     await resolution.resolve('tag-01');
-    await expect(resolution.resolve('tag-01')).resolves.toMatchObject({ id: first.id, fingerprint: 'tag-01' });
+    await expect(resolution.resolve('tag-01')).resolves.toBe(first);
 
     expect(table.findUnique).toHaveBeenCalledTimes(1);
     expect(emit).toHaveBeenCalledTimes(1);
@@ -38,21 +37,25 @@ describe('ResolutionService', () => {
     redis.values.clear();
     table.findUnique.mockClear();
 
-    await expect(resolution.resolve('tag-01')).resolves.toMatchObject({ id: stored.id });
+    await expect(resolution.resolve('tag-01')).resolves.toBe(stored);
     expect(table.findUnique).toHaveBeenCalledTimes(1);
     expect(table.rows).toHaveLength(1);
   });
 
-  it('lets a cached entity expire, so a change made outside the API shows up within a minute', async () => {
+  it('lets a cached id expire, so a database restored with new ids shows up within a minute', async () => {
     jest.useFakeTimers();
     const { resolution, table } = await entitiesTestingModule();
-    const { id } = await resolution.resolve('tag-01');
+    const before = await resolution.resolve('tag-01');
     await resolution.resolve('tag-01');
-    await table.update({ where: { id }, data: { name: 'Renamed in SQL' } });
+    const [row] = table.rows;
+    if (!row) {
+      throw new Error('the first sighting stored no row');
+    }
+    row.id = 'restored-id';
 
-    await expect(resolution.resolve('tag-01')).resolves.toMatchObject({ name: null });
+    await expect(resolution.resolve('tag-01')).resolves.toBe(before);
     jest.advanceTimersByTime(60_000);
-    await expect(resolution.resolve('tag-01')).resolves.toMatchObject({ name: 'Renamed in SQL' });
+    await expect(resolution.resolve('tag-01')).resolves.toBe('restored-id');
   });
 
   it('creates one entity and one announcement when two first sightings race', async () => {
@@ -60,7 +63,7 @@ describe('ResolutionService', () => {
 
     const [a, b] = await Promise.all([resolution.resolve('tag-01'), resolution.resolve('tag-01')]);
 
-    expect(a.id).toBe(b.id);
+    expect(a).toBe(b);
     expect(table.createManyAndReturn).toHaveBeenCalledTimes(2);
     expect(table.rows).toHaveLength(1);
     expect(emit).toHaveBeenCalledTimes(1);
@@ -113,7 +116,7 @@ describe('ResolutionService', () => {
     const [stored] = await table.createManyAndReturn({ data: [{ fingerprint: 'tag-01' }], skipDuplicates: true });
     table.update.mockRejectedValueOnce(new Error('connection refused'));
 
-    await expect(resolution.resolve('tag-01')).resolves.toMatchObject({ id: stored?.id });
+    await expect(resolution.resolve('tag-01')).resolves.toBe(stored?.id);
     await new Promise((resolve) => setImmediate(resolve));
 
     expect(logError).toHaveBeenCalledWith('could not update lastSeen (1 failed updates so far): connection refused');

@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { Entity, EntityDiscoveredEvent, WsEvents } from '@marauder/shared';
+import { EntityDiscoveredEvent, WsEvents } from '@marauder/shared';
 import { errorMessage } from '../common/error-message';
 import { ThrottledLog } from '../common/throttled-log';
 import { EntityStore } from './entity.store';
@@ -23,10 +23,10 @@ export class ResolutionService {
     return this.lastSeenWrites.size;
   }
 
-  async resolve(fingerprint: string): Promise<Entity> {
-    const known = await this.store.findByFingerprint(fingerprint);
+  async resolve(fingerprint: string): Promise<string> {
+    const known = await this.store.findIdByFingerprint(fingerprint);
     if (known) {
-      this.recordSeen(known.id);
+      this.recordSeen(known);
       return known;
     }
     const { entity, created } = await this.store.createUnknown(fingerprint);
@@ -34,7 +34,7 @@ export class ResolutionService {
     if (created) {
       this.events.emit(WsEvents.EntityDiscovered, { entity } satisfies EntityDiscoveredEvent);
     }
-    return entity;
+    return entity.id;
   }
 
   private recordSeen(id: string): void {

@@ -1,5 +1,5 @@
 import { EventEmitter } from 'node:events';
-import { Entity, ReceivedSignal } from '@marauder/shared';
+import { ReceivedSignal } from '@marauder/shared';
 import { Logger } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -12,20 +12,12 @@ const mockBroker = Object.assign(new EventEmitter(), { subscribe: jest.fn(), end
 jest.mock('mqtt', () => ({ __esModule: true, default: { connect: () => mockBroker } }));
 
 const TOPIC = 'sensors/R1/signals';
-const entity: Entity = {
-  id: 'e1',
-  fingerprint: 'aa:bb:cc',
-  name: null,
-  kind: null,
-  status: 'unknown',
-  firstSeen: 0,
-  lastSeen: 0,
-};
+const ENTITY_ID = 'e1';
 
 const opened: TestingModule[] = [];
 
 async function ingest() {
-  const resolve = jest.fn<Promise<Entity>, [string]>().mockResolvedValue(entity);
+  const resolve = jest.fn<Promise<string>, [string]>().mockResolvedValue(ENTITY_ID);
   const record = jest.fn<undefined, [string, ReceivedSignal]>();
   const moduleRef = await Test.createTestingModule({
     imports: [ConfigModule.forRoot({ ignoreEnvFile: true, validate: () => ({ MQTT_URL: 'mqtt://localhost:1883' }) })],
@@ -65,12 +57,12 @@ describe('IngestService', () => {
     await deliver(JSON.stringify(signal));
 
     expect(resolve).toHaveBeenCalledWith('aa:bb:cc');
-    expect(record.mock.lastCall).toEqual([entity.id, { ...signal, ts: 1_000 }]);
+    expect(record.mock.lastCall).toEqual([ENTITY_ID, { ...signal, ts: 1_000 }]);
   });
 
   it('stamps a signal with the time it arrived, however long its entity takes to resolve', async () => {
     const { resolve, record } = await ingest();
-    let finishLookup: (found: Entity) => void = () => undefined;
+    let finishLookup: (found: string) => void = () => undefined;
     resolve.mockReturnValueOnce(
       new Promise((done) => {
         finishLookup = done;
@@ -80,10 +72,10 @@ describe('IngestService', () => {
 
     await deliver(JSON.stringify(signal));
     clock.mockReturnValue(6_000);
-    finishLookup(entity);
+    finishLookup(ENTITY_ID);
     await settle();
 
-    expect(record.mock.lastCall).toEqual([entity.id, { ...signal, ts: 1_000 }]);
+    expect(record.mock.lastCall).toEqual([ENTITY_ID, { ...signal, ts: 1_000 }]);
   });
 
   it('ignores a retained signal, which the broker replays on every subscribe however old it is, and says so', async () => {

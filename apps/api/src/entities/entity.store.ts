@@ -19,7 +19,7 @@ function toEntity(row: EntityRow): Entity {
 const CACHE_TTL_SECONDS = 60;
 
 function cacheKey(fingerprint: string): string {
-  return `fingerprint:${fingerprint}`;
+  return `entity-id:${fingerprint}`;
 }
 
 @Injectable()
@@ -39,18 +39,17 @@ export class EntityStore {
     return row ? toEntity(row) : null;
   }
 
-  async findByFingerprint(fingerprint: string): Promise<Entity | null> {
+  async findIdByFingerprint(fingerprint: string): Promise<string | null> {
     const cached = await this.redis.client.get(cacheKey(fingerprint));
     if (cached) {
-      return JSON.parse(cached) as Entity;
+      return cached;
     }
-    const row = await this.prisma.entity.findUnique({ where: { fingerprint } });
+    const row = await this.prisma.entity.findUnique({ where: { fingerprint }, select: { id: true } });
     if (!row) {
       return null;
     }
-    const entity = toEntity(row);
-    await this.redis.client.set(cacheKey(fingerprint), JSON.stringify(entity), 'EX', CACHE_TTL_SECONDS, 'NX');
-    return entity;
+    await this.redis.client.set(cacheKey(fingerprint), row.id, 'EX', CACHE_TTL_SECONDS);
+    return row.id;
   }
 
   async createUnknown(fingerprint: string): Promise<{ entity: Entity; created: boolean }> {
@@ -68,9 +67,7 @@ export class EntityStore {
       where: { id },
       data: { name: input.name, kind: input.kind, status: 'tagged' },
     });
-    const entity = toEntity(row);
-    await this.redis.client.set(cacheKey(row.fingerprint), JSON.stringify(entity), 'EX', CACHE_TTL_SECONDS);
-    return entity;
+    return toEntity(row);
   }
 
   async markSeen(id: string, at: Date): Promise<void> {

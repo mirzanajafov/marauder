@@ -126,9 +126,14 @@ describe('API against Postgres and Redis', () => {
     it('gives a first sighting a v4 uuid and the unknown status', async () => {
       const fingerprint = `e2e-first-${randomUUID()}`;
       try {
-        const entity = await app.get(ResolutionService).resolve(fingerprint);
-        expect(entity.id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
-        expect(entity).toMatchObject({ fingerprint, status: 'unknown', name: null, kind: null });
+        const id = await app.get(ResolutionService).resolve(fingerprint);
+        expect(id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
+        await expect(prisma.entity.findUniqueOrThrow({ where: { id } })).resolves.toMatchObject({
+          fingerprint,
+          status: 'unknown',
+          name: null,
+          kind: null,
+        });
       } finally {
         await prisma.entity.deleteMany({ where: { fingerprint } });
       }
@@ -145,7 +150,7 @@ describe('API against Postgres and Redis', () => {
       try {
         const sightings = await Promise.all([1, 2, 3, 4].map(() => app.get(ResolutionService).resolve(racing)));
 
-        expect(new Set(sightings.map((entity) => entity.id)).size).toBe(1);
+        expect(new Set(sightings).size).toBe(1);
         expect(await prisma.entity.count({ where: { fingerprint: racing } })).toBe(1);
         expect(announced.filter((fingerprint) => fingerprint === racing)).toHaveLength(1);
       } finally {
