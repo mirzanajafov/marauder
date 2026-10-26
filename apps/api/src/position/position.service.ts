@@ -3,8 +3,6 @@ import { ConfigService } from '@nestjs/config';
 import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
 import {
   DEFAULT_FLOORPLAN,
-  Entity,
-  EntityUpdatedEvent,
   PositionUpdate,
   PositionsBatchEvent,
   ReceivedSignal,
@@ -64,13 +62,8 @@ export class PositionService implements OnModuleInit, OnModuleDestroy {
     await this.layoutReload;
   }
 
-  record(entity: Entity, signal: ReceivedSignal): void {
-    this.tracker.record(entity, signal);
-  }
-
-  @OnEvent(WsEvents.EntityUpdated)
-  updateEntity({ entity }: EntityUpdatedEvent): void {
-    this.tracker.updateEntity(entity);
+  record(entityId: string, signal: ReceivedSignal): void {
+    this.tracker.record(entityId, signal);
   }
 
   @OnEvent(RECEIVERS_CHANGED)

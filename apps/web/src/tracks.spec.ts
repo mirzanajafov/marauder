@@ -2,7 +2,7 @@ import { MAX_POSITION_FLUSH_MS, PositionUpdate } from '@marauder/shared';
 import { QUIET_TRACK_MS, applyPositions, dropQuietTracks } from './tracks';
 
 function position(entityId: string, x: number): PositionUpdate {
-  return { entityId, x, y: 0, accuracy: 1, ts: 0, name: null, status: 'unknown', kind: null };
+  return { entityId, x, y: 0, accuracy: 1, ts: 0 };
 }
 
 describe('live tracks', () => {

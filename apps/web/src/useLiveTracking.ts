@@ -63,7 +63,7 @@ export function useLiveTracking() {
         id: position.entityId,
         x: position.x,
         y: position.y,
-        label: entities[position.entityId]?.name ?? position.name ?? 'Unknown',
+        label: entities[position.entityId]?.name ?? 'Unknown',
         trail,
       })),
     [tracks, entities],

@@ -9,10 +9,10 @@ static const uint16_t MQTT_PORT = 1883;
 static const char* RECEIVER_ID = "R1";
 static const char* TAG_PREFIX = "";
 static const int TX_POWER = -59;
-static const int LOWEST_DBM = -127;
+static const int NO_SIGNAL_DBM = -127;
 static const int HIGHEST_DBM = 20;
 
-static_assert(TX_POWER >= LOWEST_DBM && TX_POWER <= HIGHEST_DBM, "TX_POWER must be between -127 and 20 dBm");
+static_assert(TX_POWER > NO_SIGNAL_DBM && TX_POWER <= HIGHEST_DBM, "TX_POWER must be above -127 and at most 20 dBm");
 static const int SCAN_SECONDS = 1;
 
 WiFiClient wifiClient;
@@ -50,7 +50,7 @@ class ScanHandler : public NimBLEScanCallbacks {
       return;
     }
     int rssi = device->getRSSI();
-    if (rssi <= LOWEST_DBM || rssi > HIGHEST_DBM) {
+    if (rssi <= NO_SIGNAL_DBM || rssi > HIGHEST_DBM) {
       return;
     }
     String fingerprint = device->getAddress().toString().c_str();

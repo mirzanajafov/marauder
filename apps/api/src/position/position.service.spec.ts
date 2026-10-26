@@ -77,7 +77,7 @@ function lastBatch(emit: jest.Mock<boolean, [string, PositionsBatchEvent]>): Pos
 }
 
 function hear(service: PositionService, receiver: Receiver, rssi: number): void {
-  service.record(lin, {
+  service.record(lin.id, {
     fingerprint: lin.fingerprint,
     receiverId: receiver.id,
     rssi,
@@ -108,21 +108,10 @@ describe('PositionService', () => {
     expect(emit).toHaveBeenCalledTimes(1);
     const batch = lastBatch(emit);
     expect(batch).toHaveLength(1);
-    expect(batch[0]).toMatchObject({ entityId: 'e1', name: 'Lin', status: 'tagged' });
+    expect(batch[0]?.entityId).toBe('e1');
     expect(batch[0]?.x).toBeCloseTo(15, 0);
     expect(batch[0]?.y).toBeCloseTo(9, 0);
     expect(createMany).toHaveBeenCalledTimes(1);
-  });
-
-  it('shows a new name on the next batch once the tag is renamed', async () => {
-    const corner = receiver('R1', 0, 0);
-    const { service, emit } = await positionService({ receivers: [corner] });
-    hear(service, corner, -70);
-
-    service.updateEntity({ entity: { ...lin, name: 'Lin Ward' } });
-    await jest.advanceTimersByTimeAsync(FLUSH_MS);
-
-    expect(lastBatch(emit)).toMatchObject([{ entityId: 'e1', name: 'Lin Ward' }]);
   });
 
   it('stops placing a tag once its readings go stale', async () => {

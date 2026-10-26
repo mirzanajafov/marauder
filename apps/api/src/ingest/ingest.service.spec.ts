@@ -26,7 +26,7 @@ const opened: TestingModule[] = [];
 
 async function ingest() {
   const resolve = jest.fn<Promise<Entity>, [string]>().mockResolvedValue(entity);
-  const record = jest.fn<undefined, [Entity, ReceivedSignal]>();
+  const record = jest.fn<undefined, [string, ReceivedSignal]>();
   const moduleRef = await Test.createTestingModule({
     imports: [ConfigModule.forRoot({ ignoreEnvFile: true, validate: () => ({ MQTT_URL: 'mqtt://localhost:1883' }) })],
     providers: [
@@ -65,7 +65,7 @@ describe('IngestService', () => {
     await deliver(JSON.stringify(signal));
 
     expect(resolve).toHaveBeenCalledWith('aa:bb:cc');
-    expect(record.mock.lastCall).toEqual([entity, { ...signal, ts: 1_000 }]);
+    expect(record.mock.lastCall).toEqual([entity.id, { ...signal, ts: 1_000 }]);
   });
 
   it('stamps a signal with the time it arrived, however long its entity takes to resolve', async () => {
@@ -83,10 +83,10 @@ describe('IngestService', () => {
     finishLookup(entity);
     await settle();
 
-    expect(record.mock.lastCall).toEqual([entity, { ...signal, ts: 1_000 }]);
+    expect(record.mock.lastCall).toEqual([entity.id, { ...signal, ts: 1_000 }]);
   });
 
-  it('rejects a retained signal, which the broker replays on every subscribe however old it is', async () => {
+  it('ignores a retained signal, which the broker replays on every subscribe however old it is, and says so', async () => {
     const { resolve, record } = await ingest();
     const logError = jest.spyOn(Logger.prototype, 'error').mockImplementation(() => undefined);
 
@@ -94,7 +94,7 @@ describe('IngestService', () => {
 
     expect(resolve).not.toHaveBeenCalled();
     expect(record).not.toHaveBeenCalled();
-    expect(logError).toHaveBeenCalledWith('signals rejected so far: 1, the latest on "sensors/R1/signals"');
+    expect(logError).toHaveBeenCalledWith('retained signals ignored so far: 1, the latest on "sensors/R1/signals"');
   });
 
   it('counts a rejected payload in its own log line, naming the latest topic, and resolves nothing', async () => {

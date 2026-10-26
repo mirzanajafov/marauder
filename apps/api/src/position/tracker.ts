@@ -1,4 +1,4 @@
-import { Entity, PositionUpdate, ReceivedSignal, Receiver } from '@marauder/shared';
+import { PositionUpdate, ReceivedSignal, Receiver } from '@marauder/shared';
 import { Anchor, Estimate, rssiToDistance } from './position-fit';
 
 interface Reading {
@@ -12,17 +12,12 @@ interface Track {
   readings: Map<string, Reading>;
   smoothed: { x: number; y: number } | null;
   lastReadingTs: number;
-  name: string | null;
-  kind: string | null;
-  status: Entity['status'];
 }
 
 export const STALE_READING_MS = 3_000;
 export const DROP_TRACK_MS = 12_000;
 export const POSITION_ALPHA = 0.3;
 export const RSSI_ALPHA = 0.2;
-
-export type TrackedEntity = Pick<Entity, 'id' | 'name' | 'kind' | 'status'>;
 
 export interface TrackerOptions {
   pathLossExponent: number;
@@ -36,18 +31,15 @@ export class Tracker {
 
   constructor(private readonly options: TrackerOptions) {}
 
-  record(entity: TrackedEntity, signal: ReceivedSignal): void {
-    let track = this.tracks.get(entity.id);
+  record(entityId: string, signal: ReceivedSignal): void {
+    let track = this.tracks.get(entityId);
     if (!track) {
       track = {
         readings: new Map(),
         smoothed: null,
         lastReadingTs: signal.ts,
-        name: entity.name,
-        kind: entity.kind,
-        status: entity.status,
       };
-      this.tracks.set(entity.id, track);
+      this.tracks.set(entityId, track);
     }
     const previous = track.readings.get(signal.receiverId);
     if (previous && signal.ts < previous.ts) {
@@ -66,15 +58,6 @@ export class Tracker {
       weight: 1 / (distance * distance + 1),
       ts: signal.ts,
     });
-  }
-
-  updateEntity(entity: TrackedEntity): void {
-    const track = this.tracks.get(entity.id);
-    if (track) {
-      track.name = entity.name;
-      track.kind = entity.kind;
-      track.status = entity.status;
-    }
   }
 
   advance(now: number, receivers: Map<string, Receiver>): PositionUpdate[] {
@@ -119,9 +102,6 @@ export class Tracker {
         y: smoothed.y,
         accuracy: estimate.accuracy,
         ts: now,
-        name: track.name,
-        status: track.status,
-        kind: track.kind,
       });
     }
 

@@ -175,8 +175,9 @@ The map is fed over MQTT, so any receiver that publishes `sensors/<receiverId>/s
 with `{ fingerprint, receiverId, rssi, txPower }` works. Ids are letters, digits, dots,
 colons, dashes and underscores: a fingerprint has at most 64 of them, and a receiver id
 starts with a letter or digit and has at most 40, since it ends up in URLs and in the
-topic. `rssi` and `txPower` are dBm between -127 and 20. A payload that breaks these
-rules, or comes as a retained MQTT message, is dropped and counted in the API log.
+topic. `rssi` and `txPower` are dBm above -127 and at most 20 (-127 means no signal, and
+BlueZ reports it when it has no RSSI). A payload that breaks these rules, or comes as a
+retained MQTT message, is dropped and counted in the API log.
 `txPower` is the RSSI the receiver expects from a tag at 1 m, not the Tx Power Level a
 BLE tag may advertise, which is the power at its antenna (often 0 dBm, which would put
 every tag hundreds of metres away). So both reference receivers send their calibrated

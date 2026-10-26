@@ -26,7 +26,7 @@ describe('parseSignal', () => {
   it.each([
     ['a fingerprint of 64 characters', { fingerprint: 'f'.repeat(64) }],
     ['a receiver id of 40 characters', { receiverId: 'R'.repeat(40) }],
-    ['an rssi of -127 dBm', { rssi: -127 }],
+    ['an rssi of -126 dBm', { rssi: -126 }],
     ['a tx power of 20 dBm', { txPower: 20 }],
   ])('takes %s', (_edge, edge) => {
     expect(parseSignal(payload({ ...sent, ...edge }))).toEqual({ ...sent, ...edge });
@@ -47,6 +47,7 @@ describe('parseSignal', () => {
     ['a receiver id that is only dots', { ...sent, receiverId: '..' }],
     ['a receiver id that starts with an underscore', { ...sent, receiverId: '_R1' }],
     ['a receiver id longer than 40 characters', { ...sent, receiverId: 'R'.repeat(41) }],
+    ['an rssi of -127, which BlueZ reports when it has none', { ...sent, rssi: -127 }],
     ['an rssi below what a radio reports', { ...sent, rssi: -128 }],
     ['an rssi above what a radio reports', { ...sent, rssi: 21 }],
     ['an rssi that overflows to infinity', withNumber('rssi', '-1e999')],

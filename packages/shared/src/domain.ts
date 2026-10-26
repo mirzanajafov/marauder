@@ -29,18 +29,12 @@ export interface Entity {
   lastSeen: number;
 }
 
-export interface Position {
+export interface PositionUpdate {
   entityId: string;
   x: number;
   y: number;
   accuracy: number;
   ts: number;
-}
-
-export interface PositionUpdate extends Position {
-  name: string | null;
-  status: EntityStatus;
-  kind: string | null;
 }
 
 export interface TagEntityInput {

@@ -1,4 +1,4 @@
-import { HIGHEST_DBM, LOWEST_DBM } from './radio';
+import { HIGHEST_DBM, NO_SIGNAL_DBM } from './radio';
 import { DEFAULT_RECEIVERS, DEFAULT_SCENE } from './scene';
 import { DEFAULT_TRAFFIC, createDefaultWorld, seededRandom } from './sim';
 
@@ -38,7 +38,7 @@ describe('simulated world', () => {
     const heard = [0, 1, 2, 3, 4].flatMap(() => w.signals());
 
     expect(heard.length).toBeLessThan(5 * DEFAULT_TRAFFIC.tagCount * DEFAULT_RECEIVERS.length);
-    expect(heard.filter(({ rssi }) => rssi < LOWEST_DBM || rssi > HIGHEST_DBM)).toEqual([]);
+    expect(heard.filter(({ rssi }) => rssi <= NO_SIGNAL_DBM || rssi > HIGHEST_DBM)).toEqual([]);
   });
 
   it('refuses a scene without rooms to walk between', () => {

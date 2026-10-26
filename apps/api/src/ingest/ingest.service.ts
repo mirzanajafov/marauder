@@ -14,6 +14,7 @@ export class IngestService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(IngestService.name);
   private readonly failedSignals = new ThrottledLog(this.logger);
   private readonly rejectedSignals = new ThrottledLog(this.logger);
+  private readonly retainedSignals = new ThrottledLog(this.logger);
   private readonly mqttUrl: string;
   private client: MqttClient | null = null;
 
@@ -47,7 +48,13 @@ export class IngestService implements OnModuleInit, OnModuleDestroy {
 
   private async handle(topic: string, payload: Buffer, retained: boolean): Promise<void> {
     const receivedAt = Date.now();
-    const signal = retained ? null : parseSignal(payload);
+    if (retained) {
+      this.retainedSignals.failure(
+        (ignored) => `retained signals ignored so far: ${ignored}, the latest on ${JSON.stringify(topic)}`,
+      );
+      return;
+    }
+    const signal = parseSignal(payload);
     if (!signal) {
       this.rejectedSignals.failure(
         (rejected) => `signals rejected so far: ${rejected}, the latest on ${JSON.stringify(topic)}`,
@@ -56,7 +63,7 @@ export class IngestService implements OnModuleInit, OnModuleDestroy {
     }
     try {
       const entity = await this.resolution.resolve(signal.fingerprint);
-      this.position.record(entity, { ...signal, ts: receivedAt });
+      this.position.record(entity.id, { ...signal, ts: receivedAt });
     } catch (error) {
       this.failedSignals.failure(
         (failures) => `could not handle a signal (${failures} failed signals so far): ${errorMessage(error)}`,

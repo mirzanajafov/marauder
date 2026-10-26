@@ -1,12 +1,12 @@
 import { ReceivedSignal, Receiver } from '@marauder/shared';
 import { Anchor, Estimate, rssiToDistance } from './position-fit';
-import { DROP_TRACK_MS, STALE_READING_MS, TrackedEntity, Tracker } from './tracker';
+import { DROP_TRACK_MS, STALE_READING_MS, Tracker } from './tracker';
 
 const EXPONENT = 2.5;
 const TX_POWER = -59;
 const T0 = 1_000_000;
 
-const ada: TrackedEntity = { id: 'e1', name: null, kind: null, status: 'unknown' };
+const ADA = 'e1';
 const layout = new Map<string, Receiver>([
   ['R1', { id: 'R1', name: 'NW', x: 0, y: 0, floor: 0 }],
   ['R2', { id: 'R2', name: 'NE', x: 40, y: 0, floor: 0 }],
@@ -24,8 +24,8 @@ function signal(receiverId: string, rssi: number, ts: number): ReceivedSignal {
 describe('Tracker', () => {
   it('smooths each receiver reading in dB before turning it into a distance', () => {
     const { tracker, solve } = trackerWith();
-    tracker.record(ada, signal('R1', -60, T0));
-    tracker.record(ada, signal('R1', -70, T0 + 100));
+    tracker.record(ADA, signal('R1', -60, T0));
+    tracker.record(ADA, signal('R1', -70, T0 + 100));
 
     tracker.advance(T0 + 150, layout);
 
@@ -36,8 +36,8 @@ describe('Tracker', () => {
 
   it('starts a receiver afresh when its previous reading has gone stale', () => {
     const { tracker, solve } = trackerWith();
-    tracker.record(ada, signal('R1', -60, T0));
-    tracker.record(ada, signal('R1', -70, T0 + STALE_READING_MS + 1));
+    tracker.record(ADA, signal('R1', -60, T0));
+    tracker.record(ADA, signal('R1', -70, T0 + STALE_READING_MS + 1));
 
     tracker.advance(T0 + STALE_READING_MS + 2, layout);
 
@@ -46,8 +46,8 @@ describe('Tracker', () => {
 
   it('ignores a reading older than the one it already holds for that receiver', () => {
     const { tracker, solve } = trackerWith();
-    tracker.record(ada, signal('R1', -60, T0 + 100));
-    tracker.record(ada, signal('R1', -90, T0));
+    tracker.record(ADA, signal('R1', -60, T0 + 100));
+    tracker.record(ADA, signal('R1', -90, T0));
 
     tracker.advance(T0 + 150, layout);
 
@@ -59,7 +59,7 @@ describe('Tracker', () => {
       { x: 10, y: 0, accuracy: 1 },
       { x: 20, y: 0, accuracy: 1 },
     ]);
-    tracker.record(ada, signal('R1', -60, T0));
+    tracker.record(ADA, signal('R1', -60, T0));
 
     expect(tracker.advance(T0 + 150, layout)).toMatchObject([{ x: 10, y: 0 }]);
     const [smoothed] = tracker.advance(T0 + 300, layout);
@@ -68,8 +68,8 @@ describe('Tracker', () => {
 
   it('solves only with receivers that are in the layout', () => {
     const { tracker, solve } = trackerWith();
-    tracker.record(ada, signal('R1', -60, T0));
-    tracker.record(ada, signal('R9', -60, T0));
+    tracker.record(ADA, signal('R1', -60, T0));
+    tracker.record(ADA, signal('R9', -60, T0));
 
     tracker.advance(T0 + 150, layout);
 
@@ -81,33 +81,21 @@ describe('Tracker', () => {
       { x: 10, y: 0, accuracy: 1 },
       { x: 30, y: 0, accuracy: 1 },
     ]);
-    tracker.record(ada, signal('R1', -60, T0));
+    tracker.record(ADA, signal('R1', -60, T0));
     tracker.advance(T0 + 150, layout);
 
     expect(tracker.advance(T0 + STALE_READING_MS + 151, layout)).toEqual([]);
     expect(tracker.advance(T0 + DROP_TRACK_MS + 1, layout)).toEqual([]);
 
-    tracker.record(ada, signal('R1', -60, T0 + DROP_TRACK_MS + 2));
+    tracker.record(ADA, signal('R1', -60, T0 + DROP_TRACK_MS + 2));
     expect(tracker.advance(T0 + DROP_TRACK_MS + 3, layout)).toMatchObject([{ x: 30 }]);
     expect(solve).toHaveBeenCalledTimes(2);
   });
 
-  it('takes a new name and status from an entity update', () => {
+  it('reports each tag by id with the time of the flush', () => {
     const { tracker } = trackerWith();
-    tracker.record(ada, signal('R1', -60, T0));
-    tracker.updateEntity({ ...ada, name: 'Ada', kind: 'person', status: 'tagged' });
+    tracker.record(ADA, signal('R1', -60, T0));
 
-    expect(tracker.advance(T0 + 150, layout)).toMatchObject([
-      { entityId: 'e1', name: 'Ada', kind: 'person', status: 'tagged', ts: T0 + 150 },
-    ]);
-  });
-
-  it('keeps the name it has over the entity a later reading carries, which can come from an older lookup', () => {
-    const { tracker } = trackerWith();
-    tracker.record(ada, signal('R1', -60, T0));
-    tracker.updateEntity({ ...ada, name: 'Ada', status: 'tagged' });
-    tracker.record(ada, signal('R2', -60, T0 + 10));
-
-    expect(tracker.advance(T0 + 150, layout)).toMatchObject([{ name: 'Ada', status: 'tagged' }]);
+    expect(tracker.advance(T0 + 150, layout)).toMatchObject([{ entityId: ADA, ts: T0 + 150 }]);
   });
 });
