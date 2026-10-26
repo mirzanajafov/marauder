@@ -1,17 +1,19 @@
 import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { EventEmitter2 } from '@nestjs/event-emitter';
+import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
 import { Entity, FLOOR, PositionUpdate, PositionsBatchEvent, RawSignal, Receiver, WsEvents } from '@marauder/shared';
 import { EnvironmentVariables } from '../config/env.validation';
 import { errorMessage } from '../common/error-message';
 import { ThrottledLog } from '../common/throttled-log';
+import { FLOOR_PLAN_CHANGED } from '../floorplan/floorplan.events';
 import { FloorPlanService } from '../floorplan/floorplan.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { RECEIVERS_CHANGED } from '../receivers/receivers.events';
 import { ReceiversService } from '../receivers/receivers.service';
+import { Bounds, fitPosition } from './position-fit';
 import { POSITION_ALPHA, RSSI_ALPHA, Tracker } from './tracker';
-import { Bounds, fitPosition } from './trilateration';
 
-export const LAYOUT_REFRESH_MS = 30_000;
+export const LAYOUT_RELOAD_MS = 60_000;
 
 @Injectable()
 export class PositionService implements OnModuleInit, OnModuleDestroy {
@@ -21,8 +23,9 @@ export class PositionService implements OnModuleInit, OnModuleDestroy {
   private readonly tracker: Tracker;
   private readonly flushMs: number;
   private receivers = new Map<string, Receiver>();
+  private layoutReload: Promise<void> = Promise.resolve();
   private flushTimer?: NodeJS.Timeout;
-  private layoutTimer?: NodeJS.Timeout;
+  private reloadTimer?: NodeJS.Timeout;
 
   constructor(
     private readonly receiversService: ReceiversService,
@@ -41,39 +44,41 @@ export class PositionService implements OnModuleInit, OnModuleDestroy {
   }
 
   async onModuleInit(): Promise<void> {
-    await this.refreshLayout();
+    await this.loadLayout();
     this.flushTimer = setInterval(() => void this.flush(), this.flushMs);
-    this.layoutTimer = setInterval(() => {
-      this.refreshLayout().catch((error: unknown) => {
-        this.logger.error(
-          `could not refresh receivers and floor plan, keeping the last layout: ${errorMessage(error)}`,
-        );
-      });
-    }, LAYOUT_REFRESH_MS);
+    this.reloadTimer = setInterval(() => void this.reloadLayout(), LAYOUT_RELOAD_MS);
   }
 
-  onModuleDestroy(): void {
+  async onModuleDestroy(): Promise<void> {
     clearInterval(this.flushTimer);
-    clearInterval(this.layoutTimer);
+    clearInterval(this.reloadTimer);
+    await this.layoutReload;
   }
 
   record(entity: Entity, signal: RawSignal): void {
     this.tracker.record(entity, signal);
   }
 
-  private async refreshLayout(): Promise<void> {
-    const [list, plan] = await Promise.all([this.receiversService.list(), this.floorPlanService.get()]);
-    const next = new Map<string, Receiver>();
-    for (const r of list) {
-      next.set(r.id, r);
-    }
-    this.receivers = next;
+  @OnEvent(RECEIVERS_CHANGED)
+  @OnEvent(FLOOR_PLAN_CHANGED)
+  reloadLayout(): Promise<void> {
+    this.layoutReload = this.layoutReload.then(() =>
+      this.loadLayout().catch((error: unknown) => {
+        this.logger.error(`could not reload the receivers and floor plan: ${errorMessage(error)}`);
+      }),
+    );
+    return this.layoutReload;
+  }
+
+  private async loadLayout(): Promise<void> {
+    const [receivers, plan] = await Promise.all([this.receiversService.list(), this.floorPlanService.get()]);
+    this.receivers = new Map(receivers.map((receiver) => [receiver.id, receiver]));
     this.bounds = { width: plan.width, height: plan.height };
   }
 
   private async flush(): Promise<void> {
     const now = Date.now();
-    const updates = this.tracker.positions(now, this.receivers);
+    const updates = this.tracker.advance(now, this.receivers);
 
     if (updates.length === 0) {
       return;
@@ -91,7 +96,7 @@ export class PositionService implements OnModuleInit, OnModuleDestroy {
           entityId: u.entityId,
           x: u.x,
           y: u.y,
-          accuracy: Number.isFinite(u.accuracy) ? u.accuracy : 0,
+          accuracy: u.accuracy,
         })),
         skipDuplicates: true,
       });

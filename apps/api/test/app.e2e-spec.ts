@@ -176,7 +176,7 @@ describe('API (e2e)', () => {
         .expect(409);
       expect(duplicate.body.message).toBe('receiver with this id already exists');
     } finally {
-      await prisma.receiver.delete({ where: { id: receiver.id } });
+      await request(app.getHttpServer()).delete(`/receivers/${receiver.id}`).set('Authorization', auth()).expect(204);
     }
   });
 
@@ -215,7 +215,7 @@ describe('API (e2e)', () => {
           .expect(400);
       }
     } finally {
-      await prisma.receiver.deleteMany({ where: { id: receiver.id } });
+      await request(app.getHttpServer()).delete(`/receivers/${receiver.id}`).set('Authorization', auth());
     }
   });
 
