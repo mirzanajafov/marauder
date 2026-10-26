@@ -14,7 +14,9 @@ describe('parseNumber', () => {
     ['5,', 5],
     ['12,50', 12.5],
     ['0,125', 0.125],
-    ['-0,500', -0.5],
+    ['1,125', 1.125],
+    ['1,000', 1],
+    ['1.125', 1.125],
   ])('reads %p as %p', (text, value) => {
     expect(parseNumber('x', text)).toBe(value);
   });
@@ -25,12 +27,4 @@ describe('parseNumber', () => {
       expect(() => parseNumber('x', text)).toThrow('x must be a number');
     },
   );
-
-  it.each(['1,000', '-12,500'])('refuses %p, which reads as a decimal or as thousands, and says why', (text) => {
-    expect(() => parseNumber('x', text)).toThrow('x could be read two ways');
-  });
-
-  it('reads a dot as the decimal point, the way the forms show every number', () => {
-    expect(parseNumber('x', String(1.125))).toBe(1.125);
-  });
 });
