@@ -15,6 +15,26 @@ describe('EntitiesService', () => {
     await expect(resolution.resolve('tag-01')).resolves.toMatchObject({ name: 'Ada', status: 'tagged' });
   });
 
+  it('keeps the new name when a lookup that read the row before the rename finishes after it', async () => {
+    const { entities, resolution, table } = await entitiesTestingModule();
+    const unknown = await resolution.resolve('tag-01');
+    const before = { ...(await table.findUniqueOrThrow({ where: { id: unknown.id } })) };
+    let finishRead: () => void = () => undefined;
+    table.findUnique.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          finishRead = () => resolve(before);
+        }),
+    );
+
+    const lookup = resolution.resolve('tag-01');
+    await entities.tag(unknown.id, { name: 'Ada' });
+    finishRead();
+    await lookup;
+
+    await expect(resolution.resolve('tag-01')).resolves.toMatchObject({ name: 'Ada', status: 'tagged' });
+  });
+
   it('keeps the kind when a rename leaves it out', async () => {
     const { entities, resolution } = await entitiesTestingModule();
     const { id } = await resolution.resolve('tag-01');

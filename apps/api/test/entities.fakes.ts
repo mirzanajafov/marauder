@@ -22,13 +22,13 @@ class FakeRedis {
     return Promise.resolve(entry && entry.expiresAt > Date.now() ? entry.value : null);
   }
 
-  set(key: string, value: string, _mode: 'EX', seconds: number): Promise<'OK'> {
+  set(key: string, value: string, _mode: 'EX', seconds: number, condition?: 'NX'): Promise<'OK' | null> {
+    const current = this.values.get(key);
+    if (condition === 'NX' && current && current.expiresAt > Date.now()) {
+      return Promise.resolve(null);
+    }
     this.values.set(key, { value, expiresAt: Date.now() + seconds * 1000 });
     return Promise.resolve('OK');
-  }
-
-  del(key: string): Promise<number> {
-    return Promise.resolve(this.values.delete(key) ? 1 : 0);
   }
 }
 

@@ -49,7 +49,7 @@ export class EntityStore {
       return null;
     }
     const entity = toEntity(row);
-    await this.redis.client.set(cacheKey(fingerprint), JSON.stringify(entity), 'EX', CACHE_TTL_SECONDS);
+    await this.redis.client.set(cacheKey(fingerprint), JSON.stringify(entity), 'EX', CACHE_TTL_SECONDS, 'NX');
     return entity;
   }
 
@@ -68,8 +68,9 @@ export class EntityStore {
       where: { id },
       data: { name: input.name, kind: input.kind, status: 'tagged' },
     });
-    await this.redis.client.del(cacheKey(row.fingerprint));
-    return toEntity(row);
+    const entity = toEntity(row);
+    await this.redis.client.set(cacheKey(row.fingerprint), JSON.stringify(entity), 'EX', CACHE_TTL_SECONDS);
+    return entity;
   }
 
   async markSeen(id: string, at: Date): Promise<void> {
