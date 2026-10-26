@@ -9,22 +9,10 @@ kept=()
 
 say() { printf '\n[%s] %s\n' "$(date +%H:%M:%S)" "$*"; }
 
-healthy() {
-  for _ in $(seq 1 60); do
-    if "${compose[@]}" exec -T api node -e \
-      "fetch('http://localhost:3001/api/health', { signal: AbortSignal.timeout(5000) }).then((r) => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))" 2>/dev/null &&
-      "${compose[@]}" exec -T web wget -q -T 5 -O /dev/null http://127.0.0.1/ 2>/dev/null; then
-      return 0
-    fi
-    sleep 5
-  done
-  return 1
-}
-
 keep_running_images() {
   local service image
   for service in "${built[@]}"; do
-    if image=$(docker inspect --format '{{.Image}}' "marauder-$service" 2>/dev/null); then
+    if image=$(docker container inspect --format '{{.Image}}' "marauder-$service" 2>/dev/null); then
       docker tag "$image" "marauder-$service:previous" || return 1
       kept+=("$service")
     fi
@@ -43,41 +31,48 @@ settings_accepted() {
     "${compose[@]}" run --rm --no-deps simulator node dist/check-config.js
 }
 
-applied_migrations() {
-  "${compose[@]}" exec -T timescaledb psql -U marauder -d marauder -tAc \
-    "SELECT count(*) FROM _prisma_migrations WHERE finished_at IS NOT NULL" 2>/dev/null || echo none
+query() {
+  "${compose[@]}" exec -T timescaledb psql -U marauder -d marauder -tA -v ON_ERROR_STOP=1 -c "$1"
+}
+
+started_migrations() {
+  query "SELECT count(*) FROM _prisma_migrations"
+}
+
+start() {
+  "${compose[@]}" up -d --wait --wait-timeout 300 --remove-orphans
 }
 
 release() {
   if [ "$migrating" = yes ]; then
     say "this release migrates the database, so the running api stops first"
     "${compose[@]}" stop api || return 1
+    "${compose[@]}" run --rm --no-deps api ./node_modules/.bin/prisma migrate deploy || return 1
   fi
-  "${compose[@]}" run --rm --no-deps api ./node_modules/.bin/prisma migrate deploy &&
-    "${compose[@]}" up -d --remove-orphans
+  start
 }
 
 give_up() {
   say "$1, so the running app was left as it was"
   git reset --hard --quiet "$previous"
   restore_running_images
+  "${compose[@]}" up -d timescaledb
   exit 1
 }
 
 roll_back() {
-  if [ "$(applied_migrations)" != "$applied_before" ]; then
-    say "$1, and this release migrated the database, which the code it replaced can't read"
-    say "fix forward, or restore the predeploy dump from the backups volume as the README describes"
-    exit 1
+  if [ "$migrating" = yes ]; then
+    started_after=$(started_migrations) || started_after=unknown
+    if [ "$started_after" != "$started_before" ]; then
+      say "$1, after it started migrating the database, which the code it replaced may not read"
+      say "check prisma migrate status, then fix forward or restore the predeploy dump from the backups volume as the README describes"
+      exit 1
+    fi
   fi
   say "$1, rolling back to $(git rev-parse --short "$previous") and the images that were running"
-  if [ "$migrating" = yes ]; then
-    say "the migration did not change the database, but prisma may have recorded it as failed:" \
-      "check ${compose[*]} run --rm api ./node_modules/.bin/prisma migrate status before the next deploy"
-  fi
   git reset --hard --quiet "$previous"
   restore_running_images
-  if "${compose[@]}" up -d --remove-orphans && healthy; then
+  if start; then
     say "rolled back to $(git log --oneline -1)"
   else
     say "still not healthy after the rollback, look at: ${compose[*]} logs --tail 50"
@@ -116,22 +111,30 @@ say "checking the new release against deploy/.env before anything restarts"
 settings_accepted || give_up "the new release refuses the settings named above"
 
 "${compose[@]}" up -d --wait timescaledb || give_up "the database did not come up healthy"
-status=$("${compose[@]}" run --rm --no-deps api ./node_modules/.bin/prisma migrate status 2>&1) || true
-case "$status" in
-  *"Database schema is up to date"*) migrating=no ;;
-  *"have not yet been applied"*) migrating=yes ;;
-  *)
-    printf '%s\n' "$status"
-    give_up "could not tell whether the database is up to date"
-    ;;
-esac
-applied_before=$(applied_migrations)
+shipped=$("${compose[@]}" run --rm --no-deps api ls -1 prisma/migrations | grep -vx migration_lock.toml | LC_ALL=C sort) ||
+  give_up "could not list the migrations in the new release"
+tracked=$(query "SELECT to_regclass('public._prisma_migrations') IS NOT NULL") || give_up "could not read the database"
+applied=""
+started_before=0
+if [ "$tracked" = t ]; then
+  applied=$(query "SELECT migration_name FROM _prisma_migrations WHERE finished_at IS NOT NULL AND rolled_back_at IS NULL" |
+    LC_ALL=C sort) || give_up "could not read the applied migrations"
+  failed=$(query "SELECT migration_name FROM _prisma_migrations WHERE finished_at IS NULL AND rolled_back_at IS NULL") ||
+    give_up "could not read the failed migrations"
+  [ -z "$failed" ] || give_up "migration $failed is recorded as failed, resolve it with prisma migrate resolve first"
+  started_before=$(started_migrations) || give_up "could not count the migrations"
+fi
+unknown=$(comm -13 <(printf '%s\n' "$shipped") <(printf '%s\n' "$applied"))
+[ -z "$unknown" ] || give_up "the database has migrations this release does not ship: $unknown"
+pending=$(comm -23 <(printf '%s\n' "$shipped") <(printf '%s\n' "$applied"))
+migrating=no
+if [ -n "$pending" ]; then
+  migrating=yes
+fi
 
-release || roll_back "the release did not finish"
-
-say "waiting for the api and the web app to answer"
-if healthy; then
+say "restarting and waiting for every service to be healthy"
+if release; then
   say "deployed $(git log --oneline -1)"
   exit 0
 fi
-roll_back "not healthy"
+roll_back "the release did not come up healthy"
