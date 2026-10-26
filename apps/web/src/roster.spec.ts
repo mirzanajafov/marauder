@@ -1,5 +1,5 @@
 import { Entity } from '@marauder/shared';
-import { mergeSnapshot } from '../src/roster';
+import { mergeSnapshot } from './roster';
 
 function entity(id: string, name: string | null = null): Entity {
   return {

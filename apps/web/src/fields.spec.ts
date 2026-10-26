@@ -1,4 +1,4 @@
-import { parseNumber } from '../src/fields';
+import { parseNumber } from './fields';
 
 describe('parseNumber', () => {
   it.each([

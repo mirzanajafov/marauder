@@ -8,9 +8,9 @@ import {
   PositionsBatchEvent,
   WsEvents,
 } from '@marauder/shared';
-import { describeError, fetchEntities } from './api';
+import { errorMessage, fetchEntities } from './api';
 import { WS_URL } from './config';
-import { Marker } from './marker';
+import { Marker } from './FloorMap';
 import { mergeSnapshot } from './roster';
 import { TrailPoint, extendTrail } from './trails';
 
@@ -62,7 +62,7 @@ export function useLiveTracking() {
         },
         (failure: unknown) => {
           if (snapshot === latestSnapshot) {
-            setError(`could not load the tags: ${describeError(failure)}`);
+            setError(`could not load the tags: ${errorMessage(failure)}`);
           }
         },
       );

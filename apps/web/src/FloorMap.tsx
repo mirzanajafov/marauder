@@ -1,7 +1,14 @@
 import { MouseEvent } from 'react';
 import { DEFAULT_SCENE, FloorPlan, Receiver } from '@marauder/shared';
-import { Marker } from './marker';
 import { TrailPoint, footsteps } from './trails';
+
+export interface Marker {
+  id: string;
+  x: number;
+  y: number;
+  label: string;
+  trail: readonly TrailPoint[];
+}
 
 interface Props {
   plan: FloorPlan;
@@ -38,8 +45,11 @@ function colorFor(id: string): string {
 
 export function FloorMap({ plan, receivers, markers, onMapClick }: Props) {
   const reportClickedPoint = (event: MouseEvent<SVGSVGElement>): void => {
+    if (!onMapClick) {
+      return;
+    }
     const ctm = event.currentTarget.getScreenCTM();
-    if (!onMapClick || !ctm) {
+    if (!ctm) {
       return;
     }
     const point = new DOMPoint(event.clientX, event.clientY).matrixTransform(ctm.inverse());

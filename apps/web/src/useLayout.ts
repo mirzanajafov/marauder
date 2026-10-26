@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { FloorPlan, Receiver } from '@marauder/shared';
-import { describeError, fetchFloorPlan, fetchReceivers } from './api';
+import { errorMessage, fetchFloorPlan, fetchReceivers } from './api';
 
 interface LoadFailure {
   message: string;
@@ -23,7 +23,7 @@ function useLoaded<T>(load: () => Promise<T>, initial: T, what: string) {
       },
       (failure: unknown) => {
         if (current) {
-          setError(`could not load the ${what}: ${describeError(failure)}`);
+          setError(`could not load the ${what}: ${errorMessage(failure)}`);
         }
       },
     );

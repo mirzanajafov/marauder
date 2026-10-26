@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { describeError } from './api';
+import { errorMessage } from './api';
 
 export function LoginForm({ onLogin }: { onLogin: (password: string) => Promise<void> }) {
   const [password, setPassword] = useState('');
@@ -13,7 +13,7 @@ export function LoginForm({ onLogin }: { onLogin: (password: string) => Promise<
       setPassword('');
       setError(null);
     } catch (failure) {
-      setError(describeError(failure));
+      setError(errorMessage(failure));
     } finally {
       setBusy(false);
     }

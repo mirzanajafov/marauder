@@ -1,9 +1,8 @@
 import { ReactNode, useEffect, useMemo, useState } from 'react';
 import { FloorPlan, HistoryPoint, Receiver } from '@marauder/shared';
-import { describeError, fetchHistory, fetchHistorySummary } from './api';
-import { FloorMap } from './FloorMap';
+import { errorMessage, fetchHistory, fetchHistorySummary } from './api';
+import { FloorMap, Marker } from './FloorMap';
 import { Frame, WINDOWS, bucketFor, buildFrames } from './history';
-import { Marker } from './marker';
 
 const SPEEDS = [0.5, 1, 2, 4] as const;
 
@@ -40,7 +39,7 @@ export function HistoryView({ plan, receivers }: Props) {
       },
       (failure: unknown) => {
         if (current) {
-          setLoaded({ error: describeError(failure) });
+          setLoaded({ error: errorMessage(failure) });
         }
       },
     );

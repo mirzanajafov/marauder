@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useState } from 'react';
-import { ApiError, checkSession, describeError, login as requestToken, logout as revokeToken } from './api';
+import { ApiError, checkSession, errorMessage, login as requestToken, logout as revokeToken } from './api';
 
 const STORAGE_KEY = 'marauder_token';
 
@@ -78,7 +78,7 @@ export function useAuth() {
       signOut(
         alreadyEnded
           ? null
-          : `logged out here, but the server could not end the session (${describeError(error)}), so it ends on its own`,
+          : `logged out here, but the server could not end the session (${errorMessage(error)}), so it ends on its own`,
       );
     } finally {
       setLoggingOut(false);
@@ -106,7 +106,7 @@ export function useAction() {
       if (failure instanceof ApiError && failure.status === 401) {
         expired();
       } else {
-        setError(describeError(failure));
+        setError(errorMessage(failure));
       }
       return false;
     } finally {
