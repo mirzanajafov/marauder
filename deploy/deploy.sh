@@ -46,10 +46,11 @@ start() {
 release() {
   if [ "$migrating" = yes ]; then
     say "this release migrates the database, so the running api stops first"
-    "${compose[@]}" stop api || return 1
-    "${compose[@]}" run --rm --no-deps api ./node_modules/.bin/prisma migrate deploy || return 1
+    "${compose[@]}" stop api || { say "could not stop the running api"; return 1; }
+    "${compose[@]}" run --rm --no-deps api ./node_modules/.bin/prisma migrate deploy ||
+      { say "the migration failed"; return 1; }
   fi
-  start
+  start || { say "not every service came up healthy"; return 1; }
 }
 
 give_up() {
@@ -137,4 +138,4 @@ if release; then
   say "deployed $(git log --oneline -1)"
   exit 0
 fi
-roll_back "the release did not come up healthy"
+roll_back "the release did not finish"
