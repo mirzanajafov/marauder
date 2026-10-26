@@ -1,3 +1,4 @@
+import { Logger } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { HealthController } from './health.controller';
 import { IngestService } from './ingest/ingest.service';
@@ -28,10 +29,14 @@ describe('HealthController', () => {
   });
 
   it.each([
-    ['the database', { database: false }],
-    ['Redis', { redis: 'reconnecting' }],
-    ['the broker', { mqtt: false }],
-  ])('answers 503 and names what is down when %s is unreachable', async (_name, down) => {
-    await expect((await health(down)).check()).rejects.toMatchObject({ status: 503 });
+    ['the database', { database: false }, { database: false, redis: true, mqtt: true }],
+    ['Redis', { redis: 'reconnecting' }, { database: true, redis: false, mqtt: true }],
+    ['the broker', { mqtt: false }, { database: true, redis: true, mqtt: false }],
+  ])('answers 503 and names what is down when %s is unreachable', async (_name, down, checks) => {
+    jest.spyOn(Logger.prototype, 'error').mockImplementation(() => undefined);
+    await expect((await health(down)).check()).rejects.toMatchObject({
+      status: 503,
+      response: { status: 'down', checks },
+    });
   });
 });
