@@ -45,6 +45,12 @@ export interface TagEntityInput {
   kind?: string;
 }
 
+export const MAX_POSITION_FLUSH_MS = 2_000;
+
+export const MAX_HISTORY_BUCKETS = 2_000;
+export const MIN_HISTORY_BUCKET_MS = 100;
+export const MAX_HISTORY_BUCKET_MS = 10_000;
+
 export interface HistorySummary {
   from: string | null;
   to: string | null;

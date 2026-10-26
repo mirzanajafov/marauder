@@ -21,7 +21,7 @@ export default defineConfig(
       '@typescript-eslint/restrict-template-expressions': [
         'error',
         {
-          allowAny: true,
+          allowAny: false,
           allowBoolean: false,
           allowNever: false,
           allowNullish: false,
@@ -30,19 +30,11 @@ export default defineConfig(
         },
       ],
       '@typescript-eslint/no-confusing-void-expression': ['error', { ignoreArrowShorthand: true }],
-      '@typescript-eslint/consistent-type-definitions': 'off',
-      '@typescript-eslint/no-unnecessary-condition': 'off',
     },
   },
   {
     files: ['apps/web/**/*.{ts,tsx}'],
     extends: [reactHooks.configs.flat['recommended-latest']],
-    rules: {
-      '@typescript-eslint/no-unsafe-argument': 'off',
-      '@typescript-eslint/no-unsafe-assignment': 'off',
-      '@typescript-eslint/no-unsafe-member-access': 'off',
-      'react-hooks/set-state-in-effect': 'off',
-    },
   },
   {
     files: ['**/*.{js,mjs,cjs}'],

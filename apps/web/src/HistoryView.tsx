@@ -1,187 +1,175 @@
-import { useEffect, useMemo, useState } from 'react';
-import { FloorPlan, HistoryPoint, PositionUpdate, Receiver, Wall } from '@marauder/shared';
-import { fetchHistory, fetchHistorySummary } from './api';
-import { FloorMap } from './FloorMap';
+import { ReactNode, memo, useEffect, useMemo, useState } from 'react';
+import { FloorPlan, HistoryPoint, Receiver } from '@marauder/shared';
+import { errorMessage, fetchHistory, fetchHistorySummary } from './api';
+import { FloorMap, Marker } from './FloorMap';
+import { Frame, WINDOWS, bucketFor, buildFrames } from './history';
 
-const FRAMES = 1200;
-const MIN_BUCKET_MS = 500;
-const WINDOWS = [
-  { label: '10 min', ms: 10 * 60_000 },
-  { label: '1 h', ms: 60 * 60_000 },
-];
-const SPEEDS = [0.5, 1, 2, 4];
-const TRAIL_LEN = 6;
-
-interface Frame {
-  time: number;
-  positions: Record<string, PositionUpdate>;
-}
+const SPEEDS = [0.5, 1, 2, 4] as const;
 
 interface Props {
-  receivers: Receiver[];
-  floor: FloorPlan;
-  walls?: Wall[];
+  plan: FloorPlan;
+  receivers: readonly Receiver[];
 }
 
-export function HistoryView({ receivers, floor, walls }: Props) {
-  const [windowMs, setWindowMs] = useState(WINDOWS[0].ms);
-  const [points, setPoints] = useState<HistoryPoint[]>([]);
-  const [idx, setIdx] = useState(0);
-  const [playing, setPlaying] = useState(false);
-  const [speed, setSpeed] = useState(1);
-  const [loading, setLoading] = useState(true);
-  const bucketMs = Math.max(MIN_BUCKET_MS, Math.round(windowMs / FRAMES));
+type Loaded = { points: HistoryPoint[] } | { error: string };
+
+async function loadWindow(windowMs: number): Promise<HistoryPoint[]> {
+  const { from, to } = await fetchHistorySummary();
+  if (!from || !to) {
+    return [];
+  }
+  const end = new Date(to).getTime();
+  const start = Math.max(new Date(from).getTime(), end - windowMs);
+  return fetchHistory(new Date(start).toISOString(), to, bucketFor(windowMs));
+}
+
+export const HistoryView = memo(function HistoryView({ plan, receivers }: Props) {
+  const [request, setRequest] = useState<{ windowMs: number }>({ windowMs: WINDOWS[0].ms });
+  const [speed, setSpeed] = useState<number>(1);
+  const [loaded, setLoaded] = useState<Loaded | null>(null);
+  const { windowMs } = request;
 
   useEffect(() => {
-    let active = true;
-    setLoading(true);
-    setPlaying(false);
-    fetchHistorySummary()
-      .then(async (s) => {
-        if (!active) {
-          return;
+    let current = true;
+    loadWindow(request.windowMs).then(
+      (points) => {
+        if (current) {
+          setLoaded({ points });
         }
-        if (s.from && s.to) {
-          const to = new Date(s.to).getTime();
-          const from = Math.max(new Date(s.from).getTime(), to - windowMs);
-          const pts = await fetchHistory(new Date(from).toISOString(), s.to, bucketMs);
-          if (active) {
-            setPoints(pts);
-            setIdx(0);
-          }
-        } else {
-          setPoints([]);
+      },
+      (failure: unknown) => {
+        if (current) {
+          setLoaded({ error: errorMessage(failure) });
         }
-      })
-      .catch(() => undefined)
-      .finally(() => {
-        if (active) {
-          setLoading(false);
-        }
-      });
+      },
+    );
     return () => {
-      active = false;
+      current = false;
     };
-  }, [windowMs, bucketMs]);
+  }, [request]);
 
-  const frames = useMemo<Frame[]>(() => {
-    const buckets = new Map<number, HistoryPoint[]>();
-    for (const p of points) {
-      const arr = buckets.get(p.time) ?? [];
-      arr.push(p);
-      buckets.set(p.time, arr);
-    }
-    const times = [...buckets.keys()].sort((a, b) => a - b);
-    const running: Record<string, PositionUpdate> = {};
-    const out: Frame[] = [];
-    for (const t of times) {
-      for (const p of buckets.get(t) ?? []) {
-        running[p.entityId] = {
-          entityId: p.entityId,
-          x: p.x,
-          y: p.y,
-          accuracy: p.accuracy,
-          ts: t,
-          name: p.name,
-          status: p.status,
-          kind: null,
-        };
-      }
-      out.push({ time: t, positions: { ...running } });
-    }
-    return out;
-  }, [points]);
+  const load = (ms: number): void => {
+    setLoaded(null);
+    setRequest({ windowMs: ms });
+  };
 
-  const clamped = frames.length > 0 ? Math.min(idx, frames.length - 1) : 0;
+  const windows = (
+    <div className="speeds">
+      {WINDOWS.map((w) => (
+        <button key={w.ms} className={w.ms === windowMs ? 'active' : ''} onClick={() => load(w.ms)}>
+          {w.label}
+        </button>
+      ))}
+    </div>
+  );
 
-  const trails = useMemo<Record<string, { x: number; y: number }[]>>(() => {
-    const out: Record<string, { x: number; y: number }[]> = {};
-    const start = Math.max(0, clamped - TRAIL_LEN + 1);
-    for (let j = start; j <= clamped && j < frames.length; j++) {
-      const fp = frames[j].positions;
-      for (const id of Object.keys(fp)) {
-        (out[id] ??= []).push({ x: fp[id].x, y: fp[id].y });
-      }
-    }
-    return out;
-  }, [frames, clamped]);
+  if (loaded === null) {
+    return <Message text="loading history…">{windows}</Message>;
+  }
+  if ('error' in loaded) {
+    return (
+      <Message text={`could not load the history: ${loaded.error}`}>
+        {windows}
+        <button className="retry" onClick={() => load(windowMs)}>
+          retry
+        </button>
+      </Message>
+    );
+  }
+  if (loaded.points.length === 0) {
+    return <Message text="no history yet: run the simulator to record some movement">{windows}</Message>;
+  }
+  return (
+    <Playback plan={plan} receivers={receivers} points={loaded.points} stepMs={bucketFor(windowMs) / speed}>
+      <div className="speeds">
+        {SPEEDS.map((s) => (
+          <button key={s} className={s === speed ? 'active' : ''} onClick={() => setSpeed(s)}>
+            {s}x
+          </button>
+        ))}
+      </div>
+      {windows}
+    </Playback>
+  );
+});
+
+function Message({ text, children }: { text: string; children: ReactNode }) {
+  return (
+    <div className="history">
+      <div className="map">
+        <p className="centered muted">{text}</p>
+      </div>
+      <div className="controls">{children}</div>
+    </div>
+  );
+}
+
+interface PlaybackProps extends Props {
+  points: HistoryPoint[];
+  stepMs: number;
+  children: ReactNode;
+}
+
+function Playback({ plan, receivers, points, stepMs, children }: PlaybackProps) {
+  const frames = useMemo(() => buildFrames(points), [points]);
+  const last = frames.length - 1;
+  const [index, setIndex] = useState(0);
+  const [playing, setPlaying] = useState(false);
+  const running = playing && index < last;
 
   useEffect(() => {
-    if (!playing || frames.length === 0) {
+    if (!running) {
       return;
     }
-    const interval = setInterval(() => {
-      setIdx((i) => {
-        if (i >= frames.length - 1) {
-          setPlaying(false);
-          return i;
-        }
-        return i + 1;
-      });
-    }, bucketMs / speed);
-    return () => clearInterval(interval);
-  }, [playing, speed, frames.length, bucketMs]);
+    const timer = setInterval(() => setIndex((i) => Math.min(i + 1, last)), stepMs);
+    return () => clearInterval(timer);
+  }, [running, stepMs, last]);
 
-  if (loading) {
-    return (
-      <div className="map">
-        <p className="centered muted">loading history…</p>
-      </div>
-    );
-  }
-
-  if (frames.length === 0) {
-    return (
-      <div className="map">
-        <p className="centered muted">no history yet: run the simulator to record some movement</p>
-      </div>
-    );
-  }
-
-  const current = frames[clamped];
-  const clock = new Date(current.time).toLocaleTimeString();
+  const frame: Frame | undefined = frames[index];
+  const markers = useMemo<Marker[]>(
+    () =>
+      Object.values(frame?.points ?? {}).map((p) => ({
+        id: p.entityId,
+        x: p.x,
+        y: p.y,
+        label: p.name ?? 'Unknown',
+        trail: frame?.trails[p.entityId] ?? [],
+      })),
+    [frame],
+  );
 
   return (
     <div className="history">
-      <FloorMap
-        width={floor.width}
-        height={floor.height}
-        imageUrl={floor.imageUrl}
-        walls={walls}
-        receivers={receivers}
-        entities={{}}
-        positions={current.positions}
-        trails={trails}
-      />
+      <FloorMap plan={plan} receivers={receivers} markers={markers} />
       <div className="controls">
-        <button className="play" onClick={() => setPlaying((p) => !p)}>
-          {playing ? 'pause' : 'play'}
+        <button
+          className="play"
+          onClick={() => {
+            if (running) {
+              setPlaying(false);
+              return;
+            }
+            if (index >= last) {
+              setIndex(0);
+            }
+            setPlaying(true);
+          }}
+        >
+          {running ? 'pause' : 'play'}
         </button>
         <input
           type="range"
           min={0}
-          max={frames.length - 1}
-          value={clamped}
+          max={last}
+          value={index}
+          aria-label="replay position"
           onChange={(e) => {
             setPlaying(false);
-            setIdx(Number(e.target.value));
+            setIndex(Number(e.target.value));
           }}
         />
-        <span className="clock">{clock}</span>
-        <div className="speeds">
-          {SPEEDS.map((s) => (
-            <button key={s} className={s === speed ? 'active' : ''} onClick={() => setSpeed(s)}>
-              {s}x
-            </button>
-          ))}
-        </div>
-        <div className="speeds">
-          {WINDOWS.map((w) => (
-            <button key={w.ms} className={w.ms === windowMs ? 'active' : ''} onClick={() => setWindowMs(w.ms)}>
-              {w.label}
-            </button>
-          ))}
-        </div>
+        <span className="clock">{frame ? new Date(frame.time).toLocaleTimeString() : ''}</span>
+        {children}
         <span className="muted count">{points.length} points</span>
       </div>
     </div>

@@ -9,7 +9,7 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "noEmit": true,
-    "types": ["vite/client"],
+    "types": ["vite/client", "jest"],
     "paths": { "@marauder/shared": ["../../packages/shared/src/index.ts"] }
   },
   "include": ["src", "vite.config.ts"]

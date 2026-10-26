@@ -143,8 +143,27 @@ body {
   font-size: 13px;
 }
 
+p.error {
+  flex-basis: 100%;
+  margin: 4px 0 0;
+  color: var(--unknown);
+  font-size: 12px;
+}
+
+.problem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  padding: 8px 20px;
+  border-bottom: 1px solid var(--line);
+  color: var(--unknown);
+  font-size: 13px;
+}
+
 .row {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 8px;
   padding: 8px;
@@ -153,7 +172,7 @@ body {
   margin-bottom: 8px;
 }
 
-.row .fp {
+.row .id {
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 12px;
   color: var(--muted);
@@ -353,6 +372,26 @@ button.primary:disabled {
   flex: none;
 }
 
+.receiver-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto auto;
+}
+
+.receiver-row .receiver-name {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.receiver-row .num {
+  width: auto;
+}
+
+.receiver-row .error {
+  grid-column: 1 / -1;
+}
+
 button.danger {
   background: transparent;
   color: var(--unknown);
@@ -383,7 +422,13 @@ button.danger {
   border-color: var(--unknown);
 }
 
-.auth button {
+.auth-error {
+  color: var(--unknown);
+  font-size: 12px;
+}
+
+.auth button,
+button.retry {
   background: var(--bg);
   color: var(--text);
   border: 1px solid var(--line);
@@ -391,6 +436,11 @@ button.danger {
   padding: 5px 10px;
   font-size: 12px;
   cursor: pointer;
+}
+
+.auth button:disabled {
+  opacity: 0.5;
+  cursor: default;
 }
 
 .admin-badge {
