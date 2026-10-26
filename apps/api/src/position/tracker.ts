@@ -49,13 +49,13 @@ export class Tracker {
       };
       this.tracks.set(entity.id, track);
     }
+    track.name = entity.name;
+    track.kind = entity.kind;
+    track.status = entity.status;
     const previous = track.readings.get(signal.receiverId);
     if (previous && signal.ts < previous.ts) {
       return;
     }
-    track.name = entity.name;
-    track.kind = entity.kind;
-    track.status = entity.status;
     track.lastReadingTs = Math.max(track.lastReadingTs, signal.ts);
     const beta = this.options.rssiAlpha;
     const rssi =

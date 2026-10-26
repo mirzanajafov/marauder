@@ -15,7 +15,7 @@ describe('simulated world', () => {
       b.advance(0.1, t * 100);
     }
     expect(a.tags).toEqual(b.tags);
-    expect(a.signals(60_000)).toEqual(b.signals(60_000));
+    expect(a.signals()).toEqual(b.signals());
   });
 
   it('keeps every tag on the floor and hears it from every receiver when nothing drops', () => {
@@ -30,12 +30,12 @@ describe('simulated world', () => {
       }
     }
     expect(offFloor).toBe(0);
-    expect(w.signals(300_000)).toHaveLength(DEFAULT_TRAFFIC.tagCount * DEFAULT_RECEIVERS.length);
+    expect(w.signals()).toHaveLength(DEFAULT_TRAFFIC.tagCount * DEFAULT_RECEIVERS.length);
   });
 
   it('leaves out a reading no radio could report instead of sending it outside the radio range', () => {
     const w = createDefaultWorld({ dropProb: 0, noiseDb: 40, random: seededRandom(3) });
-    const heard = [0, 1, 2, 3, 4].flatMap((tick) => w.signals(tick * 100));
+    const heard = [0, 1, 2, 3, 4].flatMap(() => w.signals());
 
     expect(heard.length).toBeLessThan(5 * DEFAULT_TRAFFIC.tagCount * DEFAULT_RECEIVERS.length);
     expect(heard.filter(({ rssi }) => rssi < LOWEST_DBM || rssi > HIGHEST_DBM)).toEqual([]);

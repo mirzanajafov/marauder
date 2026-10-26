@@ -35,8 +35,10 @@ export class IngestService implements OnModuleInit, OnModuleDestroy {
         }
       });
     });
-    client.on('message', (topic, payload) => {
-      void this.handle(topic, payload);
+    client.on('message', (topic, payload, packet) => {
+      if (!packet.retain) {
+        void this.handle(topic, payload);
+      }
     });
     client.on('error', (error) => this.logger.error(error.message));
   }

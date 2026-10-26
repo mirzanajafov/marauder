@@ -15,10 +15,6 @@ function matches(pattern: RegExp, value: unknown): value is string {
   return typeof value === 'string' && pattern.test(value);
 }
 
-function isDbm(value: unknown): value is number {
-  return typeof value === 'number' && isReportableDbm(value);
-}
-
 export function parseSignal(payload: Buffer): SignalPayload | null {
   const raw = readJson(payload);
   if (!isRecord(raw)) {
@@ -28,8 +24,8 @@ export function parseSignal(payload: Buffer): SignalPayload | null {
   if (
     !matches(FINGERPRINT_PATTERN, fingerprint) ||
     !matches(RECEIVER_ID_PATTERN, receiverId) ||
-    !isDbm(rssi) ||
-    !isDbm(txPower)
+    !isReportableDbm(rssi) ||
+    !isReportableDbm(txPower)
   ) {
     return null;
   }

@@ -54,6 +54,14 @@ describe('Tracker', () => {
     expect(solve.mock.lastCall?.[0]).toMatchObject([{ distance: rssiToDistance(-60, TX_POWER, EXPONENT) }]);
   });
 
+  it('takes the name from a reading that arrived out of order, whose entity was looked up last', () => {
+    const { tracker } = trackerWith();
+    tracker.record(ada, signal('R1', -60, T0 + 100));
+    tracker.record({ ...ada, name: 'Ada', status: 'tagged' }, signal('R1', -90, T0));
+
+    expect(tracker.advance(T0 + 150, layout)).toMatchObject([{ name: 'Ada', status: 'tagged' }]);
+  });
+
   it('moves the reported position only part of the way towards each new estimate', () => {
     const { tracker } = trackerWith([
       { x: 10, y: 0, accuracy: 1 },

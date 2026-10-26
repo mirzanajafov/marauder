@@ -46,8 +46,8 @@ function settle(): Promise<void> {
   return new Promise((resolve) => setImmediate(resolve));
 }
 
-async function deliver(message: string): Promise<void> {
-  mockBroker.emit('message', TOPIC, Buffer.from(message));
+async function deliver(message: string, retain = false): Promise<void> {
+  mockBroker.emit('message', TOPIC, Buffer.from(message), { retain });
   await settle();
 }
 
@@ -84,6 +84,15 @@ describe('IngestService', () => {
     await settle();
 
     expect(record.mock.lastCall).toEqual([entity, { ...signal, ts: 1_000 }]);
+  });
+
+  it('ignores a retained signal, which the broker replays on every subscribe however old it is', async () => {
+    const { resolve, record } = await ingest();
+
+    await deliver(JSON.stringify(signal), true);
+
+    expect(resolve).not.toHaveBeenCalled();
+    expect(record).not.toHaveBeenCalled();
   });
 
   it('counts a rejected payload in its own log line, naming the latest topic, and resolves nothing', async () => {

@@ -19,8 +19,9 @@ each shown by name on the floor plan. The tracked things carry a tag on purpose
 
 A receiver sees a tag and publishes `{ fingerprint, receiverId, rssi, txPower }` over
 MQTT, and the API stamps each reading with the time it arrives. The API resolves the
-fingerprint to an entity (creating an "unknown" one the first time), estimates a position from the RSSI readings across receivers,
-and streams batched position updates to the web UI over WebSocket. When a new tag
+fingerprint to an entity (creating an "unknown" one the first time), estimates a
+position from the RSSI readings across receivers, and streams batched position updates
+to the web UI over WebSocket. When a new tag
 appears you tag it with a name once, and after that it is recognized instantly from
 a Redis lookup.
 
@@ -175,9 +176,12 @@ The map is fed over MQTT, so any receiver that publishes `sensors/<receiverId>/s
 with `{ fingerprint, receiverId, rssi, txPower }` works. Ids are letters, digits, dots,
 colons, dashes and underscores: a fingerprint has at most 64 of them, and a receiver id
 starts with a letter or digit and has at most 40, since it ends up in URLs and in the
-topic. RSSI and tx power are dBm between -127 and 20, so a receiver that gets no tx power
-in that range from a tag sends its default instead, as both reference receivers do.
-Anything else is dropped and counted in the API log. The simulator is just one source. Two reference receivers live in `hardware/`:
+topic. `rssi` and `txPower` are dBm between -127 and 20, and `txPower` is the RSSI the
+receiver expects from a tag at 1 m. That is not the Tx Power Level a BLE tag may
+advertise, which is the power at its antenna (often 0 dBm, which would put every tag
+hundreds of metres away), so both reference receivers send their calibrated `TX_POWER`
+(-59 by default). Anything else is dropped and counted in the API log. The simulator is
+just one source. Two reference receivers live in `hardware/`:
 
 - `hardware/esp32-receiver`: an ESP32 sketch (PlatformIO) that BLE-scans and publishes
   RSSI. Set the wifi, MQTT host and `RECEIVER_ID` at the top, flash three boards placed
@@ -188,4 +192,4 @@ Anything else is dropped and counted in the API log. The simulator is just one s
 
 Use fixed-id BLE beacons (or a phone in beacon mode) as tags. Each shows up as unknown
 until you name it. Set each receiver's position in the config tab and tune
-`PATH_LOSS_EXPONENT` and txPower for your space.
+`PATH_LOSS_EXPONENT` and each receiver's `TX_POWER` for your space.

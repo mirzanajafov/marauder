@@ -1,6 +1,6 @@
 import { DEFAULT_PATH_LOSS_EXPONENT, DEFAULT_TX_POWER, isReportableDbm } from './radio';
 import { DEFAULT_RECEIVERS, DEFAULT_SCENE, FloorScene, NavNode } from './scene';
-import { ReceivedSignal, Receiver } from './domain';
+import { Receiver, SignalPayload } from './domain';
 
 export type Random = () => number;
 
@@ -68,7 +68,7 @@ export interface World {
   tags: SimTag[];
   rooms: string[];
   advance(dt: number, now: number): void;
-  signals(now: number): ReceivedSignal[];
+  signals(): SignalPayload[];
 }
 
 export function createWorld(options: WorldOptions): World {
@@ -206,8 +206,8 @@ export function createWorld(options: WorldOptions): World {
         step(tag, dt, now);
       }
     },
-    signals(now) {
-      const out: ReceivedSignal[] = [];
+    signals() {
+      const out: SignalPayload[] = [];
       for (const tag of tags) {
         for (const r of options.receivers) {
           if (random() < options.dropProb) {
@@ -228,7 +228,6 @@ export function createWorld(options: WorldOptions): World {
             receiverId: r.id,
             rssi: reported,
             txPower: options.txPower,
-            ts: now,
           });
         }
       }
