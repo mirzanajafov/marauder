@@ -8,13 +8,16 @@ from bleak import BleakScanner
 import paho.mqtt.client as mqtt
 
 MQTT_HOST = os.environ.get("MQTT_HOST", "localhost")
-MQTT_PORT = int(os.environ.get("MQTT_PORT", "1883"))
 RECEIVER_ID = os.environ.get("RECEIVER_ID", "R1")
 TAG_PREFIX = os.environ.get("TAG_PREFIX", "")
 RECEIVER_ID_PATTERN = re.compile(r"[A-Za-z0-9][\w.:-]{0,39}", re.ASCII)
 NO_SIGNAL_DBM = -127
 HIGHEST_DBM = 20
 
+try:
+    MQTT_PORT = int(os.environ.get("MQTT_PORT", "1883"))
+except ValueError:
+    sys.exit("MQTT_PORT must be a port number")
 if not RECEIVER_ID_PATTERN.fullmatch(RECEIVER_ID):
     sys.exit(
         "RECEIVER_ID must be 1 to 40 letters, digits, dots, colons, dashes or underscores, "

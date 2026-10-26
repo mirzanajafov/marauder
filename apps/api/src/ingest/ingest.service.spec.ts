@@ -95,6 +95,7 @@ describe('IngestService', () => {
     expect(resolve).not.toHaveBeenCalled();
     expect(record).not.toHaveBeenCalled();
     expect(logError).toHaveBeenCalledWith('retained signals ignored so far: 1, the latest on "sensors/R1/signals"');
+    expect(logError).toHaveBeenCalledTimes(1);
   });
 
   it('counts a rejected payload in its own log line, naming the latest topic, and resolves nothing', async () => {

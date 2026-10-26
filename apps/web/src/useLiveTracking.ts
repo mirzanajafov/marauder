@@ -3,9 +3,8 @@ import { io } from 'socket.io-client';
 import { Entity, EntityDiscoveredEvent, EntityUpdatedEvent, PositionsBatchEvent, WsEvents } from '@marauder/shared';
 import { fetchEntities } from './api';
 import { WS_URL } from './config';
-import { Marker } from './FloorMap';
 import { Snapshot, mergeSnapshot } from './roster';
-import { Tracks, applyPositions, dropQuietTracks } from './tracks';
+import { Tracks, applyPositions, dropQuietTracks, toMarkers } from './tracks';
 import { useLoaded } from './useLoaded';
 
 const PRUNE_MS = 1_000;
@@ -57,17 +56,7 @@ export function useLiveTracking() {
     };
   }, [reloadRoster, rememberEntity]);
 
-  const markers = useMemo<Marker[]>(
-    () =>
-      Object.values(tracks).map(({ position, trail }) => ({
-        id: position.entityId,
-        x: position.x,
-        y: position.y,
-        label: entities[position.entityId]?.name ?? 'Unknown',
-        trail,
-      })),
-    [tracks, entities],
-  );
+  const markers = useMemo(() => toMarkers(tracks, entities), [tracks, entities]);
 
   const entityList = useMemo(() => Object.values(entities), [entities]);
 

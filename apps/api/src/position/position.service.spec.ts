@@ -3,7 +3,6 @@ import {
   DEFAULT_PATH_LOSS_EXPONENT,
   DEFAULT_RECEIVERS,
   DEFAULT_TX_POWER,
-  Entity,
   FloorPlan,
   PositionUpdate,
   PositionsBatchEvent,
@@ -24,15 +23,7 @@ import { STALE_READING_MS } from './tracker';
 const FLUSH_MS = DEFAULT_POSITION_FLUSH_MS;
 const TUNING = { POSITION_FLUSH_MS: FLUSH_MS, PATH_LOSS_EXPONENT: DEFAULT_PATH_LOSS_EXPONENT };
 
-const lin: Entity = {
-  id: 'e1',
-  fingerprint: 'tag-01',
-  name: 'Lin',
-  kind: 'person',
-  status: 'tagged',
-  firstSeen: 0,
-  lastSeen: 0,
-};
+const lin = { id: 'e1', fingerprint: 'tag-01' };
 
 function receiver(id: string, x: number, y: number): Receiver {
   return { id, name: id, x, y, floor: 0 };
