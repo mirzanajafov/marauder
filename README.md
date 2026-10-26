@@ -145,8 +145,8 @@ If the migration fails without applying anything, the old API comes back. If the
 did change and the new API then fails, the script says so and leaves the way back to me:
 fix forward, or restore the predeploy dump.
 
-The API and simulator images carry only their own production dependencies, in one layer
-they share, with no package manager and no file the process can write to. The two of them
+The API and simulator images share one layer with the production dependencies of the two
+of them, without pnpm and with no file the process can write to. The two of them
 used to be 1.35 GB and 1.26 GB on the server, built separately. Now they are 453 MB
 together, of which each one adds less than 1 MB. My first version of the shared layer was
 764 MB, because `pnpm fetch` had already put every development package into
