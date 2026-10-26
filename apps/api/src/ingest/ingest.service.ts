@@ -13,6 +13,7 @@ import { parseSignal } from './parse-signal';
 export class IngestService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(IngestService.name);
   private readonly failedSignals = new ThrottledLog(this.logger);
+  private readonly rejectedSignals = new ThrottledLog(this.logger);
   private readonly mqttUrl: string;
   private client: MqttClient | null = null;
 
@@ -34,8 +35,8 @@ export class IngestService implements OnModuleInit, OnModuleDestroy {
         }
       });
     });
-    client.on('message', (_topic, payload) => {
-      void this.handle(payload);
+    client.on('message', (topic, payload) => {
+      void this.handle(topic, payload);
     });
     client.on('error', (error) => this.logger.error(error.message));
   }
@@ -44,9 +45,12 @@ export class IngestService implements OnModuleInit, OnModuleDestroy {
     this.client?.end(true);
   }
 
-  private async handle(payload: Buffer): Promise<void> {
-    const signal = parseSignal(payload, Date.now());
+  private async handle(topic: string, payload: Buffer): Promise<void> {
+    const signal = parseSignal(payload);
     if (!signal) {
+      this.rejectedSignals.failure(
+        (rejected) => `signals rejected so far: ${rejected}, the latest on ${JSON.stringify(topic)}`,
+      );
       return;
     }
     try {

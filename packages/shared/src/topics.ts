@@ -2,6 +2,8 @@ import { Entity, PositionUpdate } from './domain';
 
 export const SIGNAL_TOPIC_WILDCARD = 'sensors/+/signals';
 
+export const RECEIVER_ID_PATTERN = /^\w[\w.:-]{0,39}$/;
+
 export function signalTopic(receiverId: string): string {
   return `sensors/${receiverId}/signals`;
 }

@@ -1,10 +1,13 @@
 export type EntityStatus = 'unknown' | 'tagged';
 
-export interface RawSignal {
+export interface SignalPayload {
   fingerprint: string;
   receiverId: string;
   rssi: number;
   txPower: number;
+}
+
+export interface RawSignal extends SignalPayload {
   ts: number;
 }
 
