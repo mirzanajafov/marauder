@@ -88,7 +88,7 @@ the radio path, and the offset row is one draw of five offsets, not an average o
 
 - NestJS + TypeScript API
 - MQTT (Mosquitto) for signal ingest
-- Redis as a short-lived entity cache keyed by fingerprint
+- Redis as a short-lived cache from a fingerprint to its entity id
 - JWT auth guarding the write endpoints
 - TimescaleDB for position history
 - React + Vite map UI
@@ -104,8 +104,9 @@ one owner per tag, either a lease per group of tags in Redis or a broker that pa
 fingerprint, and the adapter would come back with that. The demo doesn't need it yet. One
 instance takes the simulator's ~280 signals a second at somewhere between 14% and 56% of
 one core in a quick sample on the server, and every signal still costs a Redis read to
-resolve its fingerprint (it was two until the entity cache moved to one key per
-fingerprint), which is the first thing I'd cache in process if the load grew.
+resolve its fingerprint to an entity id, which is the first thing I'd cache in process if
+the load grew. The cache holds only the id: it used to hold the whole entity, and a lookup
+that read a row just before a rename could put the old name back for a minute.
 
 ## Run it
 
@@ -147,7 +148,7 @@ docker exec marauder-timescaledb psql -U marauder -c "SELECT timescaledb_post_re
 ```
 
 The API reloads the receivers and the floor plan after every edit it makes and once a
-minute on its own, and its cached entities expire after a minute, so a restore shows up
+minute on its own, and the cached entity ids expire after a minute, so a restore shows up
 within a minute.
 
 The history itself keeps one day, which I learned the hard way. Six simulated tags write

@@ -62,8 +62,8 @@ export class IngestService implements OnModuleInit, OnModuleDestroy {
       return;
     }
     try {
-      const entity = await this.resolution.resolve(signal.fingerprint);
-      this.position.record(entity.id, { ...signal, ts: receivedAt });
+      const entityId = await this.resolution.resolve(signal.fingerprint);
+      this.position.record(entityId, { ...signal, ts: receivedAt });
     } catch (error) {
       this.failedSignals.failure(
         (failures) => `could not handle a signal (${failures} failed signals so far): ${errorMessage(error)}`,

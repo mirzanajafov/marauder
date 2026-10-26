@@ -26,10 +26,6 @@ class FakeRedis {
     this.values.set(key, { value, expiresAt: Date.now() + seconds * 1000 });
     return Promise.resolve('OK');
   }
-
-  del(key: string): Promise<number> {
-    return Promise.resolve(this.values.delete(key) ? 1 : 0);
-  }
 }
 
 class FakeEntityTable {
