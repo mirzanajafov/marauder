@@ -28,6 +28,13 @@ export async function login(password: string): Promise<string> {
   return data.token;
 }
 
+export async function logout(): Promise<void> {
+  const res = await fetch(`${API_URL}/auth/logout`, { method: 'POST', headers: authHeaders() });
+  if (!res.ok) {
+    throw new Error(`request failed: ${res.status}`);
+  }
+}
+
 export async function fetchEntities(): Promise<Entity[]> {
   const res = await fetch(`${API_URL}/entities`);
   return readJson<Entity[]>(res);

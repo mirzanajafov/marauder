@@ -1,5 +1,5 @@
 import { Type } from 'class-transformer';
-import { IsInt, Matches, Max, Min, ValidateBy } from 'class-validator';
+import { IsInt, Matches, Max, Min, MinLength, ValidateBy } from 'class-validator';
 import { MQTT_URL_PATTERN, validateEnvironment } from '@marauder/env';
 import { DEFAULT_PATH_LOSS_EXPONENT } from '@marauder/shared';
 
@@ -27,9 +27,11 @@ export class EnvironmentVariables {
   WEB_ORIGIN!: string;
 
   @Matches(/\S/)
+  @MinLength(32)
   JWT_SECRET!: string;
 
   @Matches(/\S/)
+  @MinLength(12)
   ADMIN_PASSWORD!: string;
 
   @Type(() => Number)
@@ -40,6 +42,12 @@ export class EnvironmentVariables {
 
   @Matches(/^[\w/-]*$/)
   API_PREFIX = '';
+
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  @Max(10)
+  TRUST_PROXY_HOPS = 0;
 
   @Type(() => Number)
   @Min(1)
