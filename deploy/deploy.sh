@@ -39,18 +39,24 @@ migration_rows() {
   local tracked
   tracked=$(query "SELECT to_regclass('public._prisma_migrations') IS NOT NULL") || return 1
   if [ "$tracked" = t ]; then
-    query "SELECT migration_name || ' ' || CASE WHEN rolled_back_at IS NOT NULL THEN 'rolled-back'
-      WHEN finished_at IS NOT NULL THEN 'applied' ELSE 'failed' END FROM _prisma_migrations"
+    query "SELECT migration_name || '|' || CASE WHEN rolled_back_at IS NOT NULL THEN 'rolled-back'
+      WHEN finished_at IS NOT NULL THEN 'applied' ELSE 'failed' END
+      FROM _prisma_migrations ORDER BY migration_name, started_at"
   fi
 }
 
-count_rows() {
-  printf '%s\n' "$1" | awk 'NF { n++ } END { print n + 0 }'
+proxy_reaches_api() {
+  for _ in $(seq 1 10); do
+    if "${compose[@]}" exec -T web wget -q -T 5 -O /dev/null http://127.0.0.1/api/health; then
+      return 0
+    fi
+    sleep 2
+  done
+  return 1
 }
 
 start() {
-  "${compose[@]}" up -d --wait --wait-timeout 300 --remove-orphans &&
-    "${compose[@]}" exec -T web wget -q -T 5 -O /dev/null http://127.0.0.1/api/health
+  "${compose[@]}" up -d --wait --wait-timeout 300 --remove-orphans && proxy_reaches_api
 }
 
 release() {
@@ -67,19 +73,13 @@ give_up() {
   say "$1, so the release stops before the app restarts"
   git reset --hard --quiet "$previous"
   restore_running_images
-  "${compose[@]}" up -d --wait timescaledb ||
-    say "the database did not come back healthy, look at: ${compose[*]} logs timescaledb"
   exit 1
 }
 
 roll_back() {
   if [ "$migrating" = yes ]; then
-    if rows_after=$(migration_rows); then
-      started_after=$(count_rows "$rows_after")
-    else
-      started_after=unknown
-    fi
-    if [ "$started_after" != "$started_before" ]; then
+    rows_after=$(migration_rows) || rows_after=unreadable
+    if [ "$rows_after" != "$rows" ]; then
       say "$1, after it started migrating the database, which the code it replaced may not read"
       say "check prisma migrate status, then fix forward or restore the predeploy dump from the backups volume as the README describes"
       exit 1
@@ -126,16 +126,16 @@ keep_running_images || give_up "could not tag the images that are running"
 say "checking the new release against deploy/.env before anything restarts"
 settings_accepted || give_up "the new release refuses the settings named above"
 
-"${compose[@]}" up -d --wait timescaledb || give_up "the database did not come up healthy"
-shipped=$(find ../apps/api/prisma/migrations -mindepth 1 -maxdepth 1 -type d -printf '%f\n' | LC_ALL=C sort)
+"${compose[@]}" up -d --wait --no-recreate timescaledb || give_up "the database is not healthy"
+shipped=$(find ../apps/api/prisma/migrations -mindepth 1 -maxdepth 1 -type d -printf '%f\n' | LC_ALL=C sort) ||
+  give_up "could not list the migrations in the new release"
 rows=$(migration_rows) || give_up "could not read the migrations in the database"
-applied=$(printf '%s\n' "$rows" | awk '$2 == "applied" { print $1 }' | LC_ALL=C sort)
-failed=$(printf '%s\n' "$rows" | awk '$2 == "failed" { print $1 }')
-started_before=$(count_rows "$rows")
+applied=$(printf '%s\n' "$rows" | awk -F'|' '$2 == "applied" { print $1 }' | LC_ALL=C sort)
+failed=$(printf '%s\n' "$rows" | awk -F'|' '$2 == "failed" { print $1 }')
 [ -z "$failed" ] || give_up "migration $failed is recorded as failed, resolve it with prisma migrate resolve first"
-unknown=$(comm -13 <(printf '%s\n' "$shipped") <(printf '%s\n' "$applied"))
+unknown=$(LC_ALL=C comm -13 <(printf '%s\n' "$shipped") <(printf '%s\n' "$applied"))
 [ -z "$unknown" ] || give_up "the database has migrations this release does not ship: $unknown"
-pending=$(comm -23 <(printf '%s\n' "$shipped") <(printf '%s\n' "$applied"))
+pending=$(LC_ALL=C comm -23 <(printf '%s\n' "$shipped") <(printf '%s\n' "$applied"))
 migrating=no
 if [ -n "$pending" ]; then
   migrating=yes
