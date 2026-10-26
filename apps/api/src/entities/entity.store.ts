@@ -70,7 +70,7 @@ export class EntityStore {
   async tag(id: string, input: TagEntityInput): Promise<Entity> {
     const row = await this.prisma.entity.update({
       where: { id },
-      data: { name: input.name, kind: input.kind ?? null, status: 'tagged' },
+      data: { name: input.name, kind: input.kind, status: 'tagged' },
     });
     await this.redis.client.del(cacheKey(row.fingerprint));
     return toEntity(row);

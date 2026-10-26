@@ -15,6 +15,14 @@ describe('EntitiesService', () => {
     await expect(resolution.resolve('tag-01')).resolves.toMatchObject({ name: 'Ada', status: 'tagged' });
   });
 
+  it('keeps the kind when a rename leaves it out', async () => {
+    const { entities, resolution } = await entitiesTestingModule();
+    const { id } = await resolution.resolve('tag-01');
+    await entities.tag(id, { name: 'Ada', kind: 'person' });
+
+    await expect(entities.tag(id, { name: 'Ada L.' })).resolves.toMatchObject({ name: 'Ada L.', kind: 'person' });
+  });
+
   it('answers 404 for an id it does not know', async () => {
     const { entities } = await entitiesTestingModule();
     await expect(entities.get('missing')).rejects.toThrow(NotFoundException);
