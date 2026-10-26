@@ -15,48 +15,55 @@ export function useLiveTracking() {
   const [tracks, setTracks] = useState<Tracks>({});
   const [connected, setConnected] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const latestSnapshot = useRef(0);
-  const heardSinceSnapshot = useRef(new Set<string>());
+  const [snapshots, setSnapshots] = useState(0);
+  const heardDuringSnapshot = useRef<Set<string> | null>(null);
 
   const rememberEntity = useCallback((entity: Entity): void => {
     setEntities((known) => ({ ...known, [entity.id]: entity }));
   }, []);
 
-  const loadSnapshot = useCallback((): void => {
-    latestSnapshot.current += 1;
-    const snapshot = latestSnapshot.current;
+  const loadSnapshot = useCallback(() => setSnapshots((count) => count + 1), []);
+
+  useEffect(() => {
+    if (snapshots === 0) {
+      return;
+    }
+    let current = true;
     const heard = new Set<string>();
-    heardSinceSnapshot.current = heard;
+    heardDuringSnapshot.current = heard;
     fetchEntities().then(
       (list) => {
-        if (snapshot === latestSnapshot.current) {
+        if (current) {
           setEntities((known) => mergeSnapshot(list, known, heard));
           setError(null);
         }
       },
       (failure: unknown) => {
-        if (snapshot === latestSnapshot.current) {
+        if (current) {
           setError(`could not load the tags: ${errorMessage(failure)}`);
         }
       },
     );
-  }, []);
+    return () => {
+      current = false;
+    };
+  }, [snapshots]);
 
   useEffect(() => {
     const announced = ({ entity }: EntityDiscoveredEvent | EntityUpdatedEvent): void => {
-      heardSinceSnapshot.current.add(entity.id);
+      heardDuringSnapshot.current?.add(entity.id);
       rememberEntity(entity);
     };
     const move = ({ positions }: PositionsBatchEvent): void => {
       setTracks((previous) => applyPositions(previous, positions, performance.now()));
     };
 
-    loadSnapshot();
     const socket = io(WS_URL, { transports: ['websocket'] });
     socket.on('connect', () => {
       setConnected(true);
       loadSnapshot();
     });
+    socket.once('connect_error', loadSnapshot);
     socket.on('disconnect', () => setConnected(false));
     socket.on(WsEvents.EntityDiscovered, announced);
     socket.on(WsEvents.EntityUpdated, announced);
