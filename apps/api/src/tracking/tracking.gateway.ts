@@ -8,17 +8,17 @@ export class TrackingGateway {
   @WebSocketServer()
   server!: Server;
 
-  @OnEvent('entity.discovered')
+  @OnEvent(WsEvents.EntityDiscovered)
   onDiscovered(payload: EntityDiscoveredEvent): void {
     this.server.emit(WsEvents.EntityDiscovered, payload);
   }
 
-  @OnEvent('entity.updated')
+  @OnEvent(WsEvents.EntityUpdated)
   onUpdated(payload: EntityUpdatedEvent): void {
     this.server.emit(WsEvents.EntityUpdated, payload);
   }
 
-  @OnEvent('positions.batch')
+  @OnEvent(WsEvents.PositionsBatch)
   onPositions(payload: PositionsBatchEvent): void {
     this.server.emit(WsEvents.PositionsBatch, payload);
   }

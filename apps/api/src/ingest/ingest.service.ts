@@ -2,7 +2,7 @@ import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/commo
 import { ConfigService } from '@nestjs/config';
 import mqtt, { MqttClient } from 'mqtt';
 import { RawSignal, SIGNAL_TOPIC_WILDCARD } from '@marauder/shared';
-import { ResolutionService } from '../resolution/resolution.service';
+import { ResolutionService } from '../entities/resolution.service';
 import { PositionService } from '../position/position.service';
 import { EnvironmentVariables } from '../config/env.validation';
 import { errorMessage } from '../common/error-message';

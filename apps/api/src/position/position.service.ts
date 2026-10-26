@@ -1,7 +1,7 @@
 import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { Entity, FLOOR, PositionUpdate, RawSignal, Receiver } from '@marauder/shared';
+import { Entity, FLOOR, PositionUpdate, PositionsBatchEvent, RawSignal, Receiver, WsEvents } from '@marauder/shared';
 import { EnvironmentVariables } from '../config/env.validation';
 import { errorMessage } from '../common/error-message';
 import { ThrottledLog } from '../common/throttled-log';
@@ -79,7 +79,7 @@ export class PositionService implements OnModuleInit, OnModuleDestroy {
       return;
     }
 
-    this.events.emit('positions.batch', { positions: updates });
+    this.events.emit(WsEvents.PositionsBatch, { positions: updates } satisfies PositionsBatchEvent);
     await this.persist(updates, now);
   }
 

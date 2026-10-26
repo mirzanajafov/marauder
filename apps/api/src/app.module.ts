@@ -6,7 +6,6 @@ import { RedisModule } from './redis/redis.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { ReceiversModule } from './receivers/receivers.module';
 import { EntitiesModule } from './entities/entities.module';
-import { ResolutionModule } from './resolution/resolution.module';
 import { PositionModule } from './position/position.module';
 import { TrackingModule } from './tracking/tracking.module';
 import { IngestModule } from './ingest/ingest.module';
@@ -26,7 +25,6 @@ import { PrismaExceptionFilter } from './common/prisma-exception.filter';
     PrismaModule,
     ReceiversModule,
     EntitiesModule,
-    ResolutionModule,
     PositionModule,
     TrackingModule,
     IngestModule,

@@ -1,40 +1,31 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { Entity } from '@marauder/shared';
-import { PrismaService } from '../prisma/prisma.service';
-import { RedisService } from '../redis/redis.service';
-import { toEntityDto } from './entity.mapper';
+import { Entity, EntityUpdatedEvent, WsEvents } from '@marauder/shared';
 import { TagEntityDto } from './dto/tag-entity.dto';
+import { EntityStore } from './entity.store';
 
 @Injectable()
 export class EntitiesService {
   constructor(
-    private readonly prisma: PrismaService,
-    private readonly redis: RedisService,
+    private readonly store: EntityStore,
     private readonly events: EventEmitter2,
   ) {}
 
-  async list(): Promise<Entity[]> {
-    const rows = await this.prisma.entity.findMany({ orderBy: { lastSeen: 'desc' } });
-    return rows.map(toEntityDto);
+  list(): Promise<Entity[]> {
+    return this.store.list();
   }
 
   async get(id: string): Promise<Entity> {
-    const row = await this.prisma.entity.findUnique({ where: { id } });
-    if (!row) {
+    const entity = await this.store.get(id);
+    if (!entity) {
       throw new NotFoundException('entity not found');
     }
-    return toEntityDto(row);
+    return entity;
   }
 
   async tag(id: string, input: TagEntityDto): Promise<Entity> {
-    const row = await this.prisma.entity.update({
-      where: { id },
-      data: { name: input.name, kind: input.kind ?? null, status: 'tagged' },
-    });
-    const dto = toEntityDto(row);
-    await this.redis.client.set(`entity:${dto.id}`, JSON.stringify(dto));
-    this.events.emit('entity.updated', { entity: dto });
-    return dto;
+    const entity = await this.store.tag(id, input);
+    this.events.emit(WsEvents.EntityUpdated, { entity } satisfies EntityUpdatedEvent);
+    return entity;
   }
 }

@@ -1,11 +1,14 @@
 import { randomUUID } from 'node:crypto';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { JwtService } from '@nestjs/jwt';
 import { Test } from '@nestjs/testing';
+import { EntityDiscoveredEvent, WsEvents } from '@marauder/shared';
 import request from 'supertest';
 import { AppModule } from '../src/app.module';
 import { AuthService } from '../src/auth/auth.service';
+import { ResolutionService } from '../src/entities/resolution.service';
 import { PrismaService } from '../src/prisma/prisma.service';
 
 describe('API (e2e)', () => {
@@ -208,6 +211,26 @@ describe('API (e2e)', () => {
       .set('Authorization', auth())
       .send({ name: 'Nobody' })
       .expect(404);
+  });
+
+  it('creates one entity and announces it once when four first sightings of a fingerprint race', async () => {
+    const racing = `e2e-race-${randomUUID()}`;
+    const events = app.get(EventEmitter2);
+    const announced: string[] = [];
+    const listener = (event: EntityDiscoveredEvent): void => {
+      announced.push(event.entity.fingerprint);
+    };
+    events.on(WsEvents.EntityDiscovered, listener);
+    try {
+      const sightings = await Promise.all([1, 2, 3, 4].map(() => app.get(ResolutionService).resolve(racing)));
+
+      expect(new Set(sightings.map((entity) => entity.id)).size).toBe(1);
+      expect(await prisma.entity.count({ where: { fingerprint: racing } })).toBe(1);
+      expect(announced.filter((fingerprint) => fingerprint === racing)).toHaveLength(1);
+    } finally {
+      events.off(WsEvents.EntityDiscovered, listener);
+      await prisma.entity.deleteMany({ where: { fingerprint: racing } });
+    }
   });
 
   it('refuses a history window bound that is not a timestamp', async () => {

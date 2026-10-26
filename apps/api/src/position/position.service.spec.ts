@@ -1,4 +1,11 @@
-import { DEFAULT_PATH_LOSS_EXPONENT, DEFAULT_RECEIVERS, DEFAULT_TX_POWER, Entity, RawSignal } from '@marauder/shared';
+import {
+  DEFAULT_PATH_LOSS_EXPONENT,
+  DEFAULT_RECEIVERS,
+  DEFAULT_TX_POWER,
+  Entity,
+  RawSignal,
+  WsEvents,
+} from '@marauder/shared';
 import { Logger } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { DEFAULT_POSITION_FLUSH_MS } from '../config/env.validation';
@@ -80,7 +87,7 @@ describe('PositionService', () => {
 
     hearFromEveryReceiver();
     await jest.advanceTimersByTimeAsync(1_000);
-    expect(emit).toHaveBeenCalledWith('positions.batch', {
+    expect(emit).toHaveBeenCalledWith(WsEvents.PositionsBatch, {
       positions: [expect.objectContaining({ entityId: 'e4', x: expect.closeTo(10, 0), y: expect.closeTo(5, 0) })],
     });
 
@@ -126,7 +133,7 @@ describe('PositionService', () => {
 
     expect(emit).toHaveBeenCalledTimes(1);
     const [event, payload] = emit.mock.calls[0];
-    expect(event).toBe('positions.batch');
+    expect(event).toBe(WsEvents.PositionsBatch);
     expect(payload.positions).toHaveLength(1);
     const pos = payload.positions[0];
     expect(pos.entityId).toBe('e1');

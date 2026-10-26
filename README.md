@@ -88,7 +88,7 @@ the radio path, and the offset row is one draw of five offsets, not an average o
 
 - NestJS + TypeScript API
 - MQTT (Mosquitto) for signal ingest
-- Redis for fingerprint resolution and the entity cache
+- Redis as a short-lived entity cache keyed by fingerprint
 - JWT auth guarding the write endpoints
 - TimescaleDB for position history
 - React + Vite map UI
@@ -103,8 +103,9 @@ out, so I took it out along with the two Redis connections it kept open. Scaling
 one owner per tag, either a lease per group of tags in Redis or a broker that partitions by
 fingerprint, and the adapter would come back with that. The demo doesn't need it yet. One
 instance takes the simulator's ~280 signals a second at somewhere between 14% and 56% of
-one core in a quick sample on the server, and every signal still costs two Redis reads to
-resolve its fingerprint, which is the first thing I'd cache in process if the load grew.
+one core in a quick sample on the server, and every signal still costs a Redis read to
+resolve its fingerprint (it was two until the entity cache moved to one key per
+fingerprint), which is the first thing I'd cache in process if the load grew.
 
 ## Run it
 
