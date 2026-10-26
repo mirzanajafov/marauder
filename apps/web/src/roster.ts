@@ -1,12 +1,13 @@
 import { Entity } from '@marauder/shared';
 
-export function mergeSnapshot(
-  snapshot: readonly Entity[],
-  known: Readonly<Record<string, Entity>>,
-  heardSince: ReadonlySet<string>,
-): Record<string, Entity> {
-  const merged = Object.fromEntries(snapshot.map((entity) => [entity.id, entity]));
-  for (const id of heardSince) {
+export interface Snapshot {
+  entities: readonly Entity[];
+  heardDuring: ReadonlySet<string>;
+}
+
+export function mergeSnapshot(known: Readonly<Record<string, Entity>>, snapshot: Snapshot): Record<string, Entity> {
+  const merged = Object.fromEntries(snapshot.entities.map((entity) => [entity.id, entity]));
+  for (const id of snapshot.heardDuring) {
     const newer = known[id];
     if (newer) {
       merged[id] = newer;

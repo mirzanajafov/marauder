@@ -6,7 +6,11 @@ export interface LoadFailure {
   retry: () => void;
 }
 
-export function useLoaded<T>(load: () => Promise<T>, initial: T, what: string) {
+export function replaceWith<T>(_current: T, loaded: T): T {
+  return loaded;
+}
+
+export function useLoaded<T, L>(load: () => Promise<L>, apply: (current: T, loaded: L) => T, initial: T, what: string) {
   const [value, setValue] = useState<T>(initial);
   const [error, setError] = useState<string | null>(null);
   const [loads, setLoads] = useState(0);
@@ -16,7 +20,7 @@ export function useLoaded<T>(load: () => Promise<T>, initial: T, what: string) {
     load().then(
       (loaded) => {
         if (current) {
-          setValue(loaded);
+          setValue((previous) => apply(previous, loaded));
           setError(null);
         }
       },
@@ -29,7 +33,7 @@ export function useLoaded<T>(load: () => Promise<T>, initial: T, what: string) {
     return () => {
       current = false;
     };
-  }, [load, what, loads]);
+  }, [load, apply, what, loads]);
 
   const reload = useCallback(() => setLoads((count) => count + 1), []);
   const failure: LoadFailure | null = error === null ? null : { message: error, retry: reload };

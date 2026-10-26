@@ -1,59 +1,36 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { io } from 'socket.io-client';
 import { Entity, EntityDiscoveredEvent, EntityUpdatedEvent, PositionsBatchEvent, WsEvents } from '@marauder/shared';
-import { errorMessage, fetchEntities } from './api';
+import { fetchEntities } from './api';
 import { WS_URL } from './config';
 import { Marker } from './FloorMap';
-import { mergeSnapshot } from './roster';
-import { Tracks, applyPositions, dropQuietTracks } from './tracks';
-import { LoadFailure } from './useLoaded';
-
-const PRUNE_MS = 1_000;
+import { Snapshot, mergeSnapshot } from './roster';
+import { PRUNE_MS, Tracks, applyPositions, dropQuietTracks } from './tracks';
+import { useLoaded } from './useLoaded';
 
 export function useLiveTracking() {
-  const [entities, setEntities] = useState<Record<string, Entity>>({});
   const [tracks, setTracks] = useState<Tracks>({});
   const [connected, setConnected] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [snapshots, setSnapshots] = useState(0);
   const heardDuringSnapshot = useRef<Set<string> | null>(null);
 
-  const rememberEntity = useCallback((entity: Entity): void => {
-    setEntities((known) => ({ ...known, [entity.id]: entity }));
+  const loadSnapshot = useCallback(async (): Promise<Snapshot> => {
+    const heardDuring = new Set<string>();
+    heardDuringSnapshot.current = heardDuring;
+    return { entities: await fetchEntities(), heardDuring };
   }, []);
+  const roster = useLoaded<Record<string, Entity>, Snapshot>(loadSnapshot, mergeSnapshot, {}, 'tags');
+  const { value: entities, setValue: setEntities, reload: reloadRoster } = roster;
 
-  const loadSnapshot = useCallback(() => setSnapshots((count) => count + 1), []);
-
-  useEffect(() => {
-    if (snapshots === 0) {
-      return;
-    }
-    let current = true;
-    const heard = new Set<string>();
-    heardDuringSnapshot.current = heard;
-    fetchEntities().then(
-      (list) => {
-        if (current) {
-          setEntities((known) => mergeSnapshot(list, known, heard));
-          setError(null);
-        }
-      },
-      (failure: unknown) => {
-        if (current) {
-          setError(`could not load the tags: ${errorMessage(failure)}`);
-        }
-      },
-    );
-    return () => {
-      current = false;
-    };
-  }, [snapshots]);
-
-  useEffect(() => {
-    const announced = ({ entity }: EntityDiscoveredEvent | EntityUpdatedEvent): void => {
+  const rememberEntity = useCallback(
+    (entity: Entity): void => {
       heardDuringSnapshot.current?.add(entity.id);
-      rememberEntity(entity);
-    };
+      setEntities((known) => ({ ...known, [entity.id]: entity }));
+    },
+    [setEntities],
+  );
+
+  useEffect(() => {
+    const announced = ({ entity }: EntityDiscoveredEvent | EntityUpdatedEvent): void => rememberEntity(entity);
     const move = ({ positions }: PositionsBatchEvent): void => {
       setTracks((previous) => applyPositions(previous, positions, performance.now()));
     };
@@ -61,9 +38,8 @@ export function useLiveTracking() {
     const socket = io(WS_URL, { transports: ['websocket'] });
     socket.on('connect', () => {
       setConnected(true);
-      loadSnapshot();
+      reloadRoster();
     });
-    socket.once('connect_error', loadSnapshot);
     socket.on('disconnect', () => setConnected(false));
     socket.on(WsEvents.EntityDiscovered, announced);
     socket.on(WsEvents.EntityUpdated, announced);
@@ -73,7 +49,7 @@ export function useLiveTracking() {
       clearInterval(pruning);
       socket.close();
     };
-  }, [loadSnapshot, rememberEntity]);
+  }, [reloadRoster, rememberEntity]);
 
   const markers = useMemo<Marker[]>(
     () =>
@@ -88,7 +64,6 @@ export function useLiveTracking() {
   );
 
   const entityList = useMemo(() => Object.values(entities), [entities]);
-  const failure: LoadFailure | null = error === null ? null : { message: error, retry: loadSnapshot };
 
-  return { entities: entityList, markers, connected, failure, rememberEntity };
+  return { entities: entityList, markers, connected, failure: roster.failure, rememberEntity };
 }
