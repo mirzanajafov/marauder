@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/mirzanajafov/marauder/actions/workflows/ci.yml/badge.svg)](https://github.com/mirzanajafov/marauder/actions/workflows/ci.yml)
 
-**Live demo:** [marauder.najafov.dev](https://marauder.najafov.dev). Anyone can watch the map, but naming people needs the admin password. The dashboard loads a small script from najafov.dev that records visits the way my site does, with less detail, and whether someone pressed play on the history. Every build loads it, but my site records only visits to marauder.najafov.dev. If you run your own copy, you can delete the tag from `apps/web/index.html` and the footer from `App.tsx`. What it records and why is at [najafov.dev/privacy#demos](https://najafov.dev/privacy#demos).
+**Live demo:** [marauder.najafov.dev](https://marauder.najafov.dev). Anyone can watch the map, but naming people needs the admin password. The dashboard loads a small script from najafov.dev that records visits the way my site does, with less detail, and whether someone pressed play on the history. Every build loads it, but my site records only visits to marauder.najafov.dev. If you run your own copy, you can delete the tag from `apps/web/index.html` and the footer from `apps/web/src/App.tsx`. What it records and why is at [najafov.dev/privacy#demos](https://najafov.dev/privacy#demos).
 
 Real-time indoor positioning for opt-in tags. I built it to see how far you can
 push RSSI-based tracking with a clean streaming pipeline: fixed BLE/Wi-Fi tags
