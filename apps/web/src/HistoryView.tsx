@@ -154,7 +154,9 @@ function Playback({ plan, receivers, points, stepMs, children }: PlaybackProps) 
               setIndex(0);
             }
             setPlaying(true);
-            reportStep('replayed');
+            if (last > 0) {
+              reportStep('replayed');
+            }
           }}
         >
           {running ? 'pause' : 'play'}
