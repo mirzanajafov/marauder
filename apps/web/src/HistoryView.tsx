@@ -3,6 +3,7 @@ import { FloorPlan, HistoryPoint, Receiver } from '@marauder/shared';
 import { errorMessage, fetchHistory, fetchHistorySummary } from './api';
 import { FloorMap, Marker } from './FloorMap';
 import { Frame, WINDOWS, bucketFor, buildFrames } from './history';
+import { reportStep } from './visit';
 
 const SPEEDS = [0.5, 1, 2, 4] as const;
 
@@ -153,6 +154,9 @@ function Playback({ plan, receivers, points, stepMs, children }: PlaybackProps) 
               setIndex(0);
             }
             setPlaying(true);
+            if (last > 0) {
+              reportStep('replayed');
+            }
           }}
         >
           {running ? 'pause' : 'play'}

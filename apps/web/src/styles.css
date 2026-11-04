@@ -30,6 +30,7 @@ body {
   display: flex;
   flex-direction: column;
   height: 100vh;
+  height: 100dvh;
 }
 
 .topbar {
@@ -66,6 +67,15 @@ body {
   display: flex;
   flex: 1;
   min-height: 0;
+}
+
+.footer {
+  padding: 6px 20px 10px;
+  font-size: 12px;
+}
+
+.footer a {
+  color: var(--muted);
 }
 
 .map {
@@ -457,6 +467,7 @@ button.retry {
 @media (max-width: 900px) {
   .app {
     height: auto;
+    min-height: 100vh;
     min-height: 100dvh;
   }
 
@@ -464,6 +475,10 @@ button.retry {
     flex-wrap: wrap;
     gap: 8px;
     padding: 10px 12px;
+  }
+
+  .footer {
+    padding: 6px 12px 10px;
   }
 
   .modes {

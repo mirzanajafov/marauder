@@ -82,6 +82,9 @@ export function App() {
               </div>
             ))}
         </main>
+        <footer className="footer">
+          <a href="https://najafov.dev/privacy#demos">What this demo records</a>
+        </footer>
       </div>
     </SessionContext.Provider>
   );
